@@ -13,6 +13,8 @@ human dialogue.
 - **2026-07-23:** Added the official MediaSum repository as a Git submodule, pinned
   at commit `7c92589bb6e69e678d043a9cf8c8c7285cd88055`.
 - **2026-07-23:** Added local Fireworks and Turbopuffer credential configuration.
+- **2026-07-23:** Replaced the shell downloader with the Go/Cobra `isc-rag`
+  command-line interface.
 
 ## Initial study design
 
@@ -45,17 +47,17 @@ is the separately downloaded, checksum-verified local resource at
 
 ## Bootstrap
 
-From this project directory, initialize the pinned upstream source and acquire
-the exact pinned corpus release with:
+From this project directory, bootstrap through the Go/Cobra CLI with:
 
 ```sh
-./bootstrap.sh --accept-mediasum-research-only
+./bootstrap.sh
 ```
 
-The script verifies SHA-256 checksums before atomically placing each source file
-in `resources/mediasum/`. Use `./bootstrap.sh --skip-data` to initialize only
-the upstream submodule. The research-only restriction is intentional: accepting
-it is required before the script downloads corpus data.
+`bootstrap.sh` only verifies that Go is installed and delegates to
+`isc-rag bootstrap`. The command loads the local `.env`, requires both API keys,
+then verifies existing MediaSum files or downloads the pinned files atomically
+into `resources/mediasum/` with SHA-256 validation. MediaSum remains restricted
+to research use under the source release terms.
 
 ## Local credentials
 

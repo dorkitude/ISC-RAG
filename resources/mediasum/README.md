@@ -37,11 +37,11 @@ dataset card before any broader use.
 
 ## Acquisition
 
-The download uses the pinned Hugging Face revision above, with resumption enabled.
-After it completes, verify with:
+The Go/Cobra CLI downloads the pinned Hugging Face revision to a temporary file,
+validates its checksum, then atomically places it in this directory. Run:
 
 ```sh
-shasum -a 256 -c MANIFEST.sha256
+./bootstrap.sh
 ```
 
 ### Completed acquisition

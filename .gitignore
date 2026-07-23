@@ -5,3 +5,6 @@ resources/mediasum/.download-*
 
 # Local credentials. Keep .env_example tracked as the shareable template.
 .env
+
+# Locally built Go CLI executable.
+/isc-rag
