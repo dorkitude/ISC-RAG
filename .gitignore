@@ -1,0 +1,7 @@
+# Downloaded third-party corpus data; retain only manifests and code in Git.
+resources/mediasum/*.json
+resources/mediasum/*.jsonl
+resources/mediasum/.download-*
+
+# Local credentials. Keep .env_example tracked as the shareable template.
+.env
