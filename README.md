@@ -45,7 +45,7 @@ The proposed fact-pipeline contract, provenance validation, enrichment pass, and
 ablation boundaries are documented in [fact-pipeline design](docs/fact-pipeline-design.md).
 The canonical-data, vector-projection, and index-synchronization boundaries are
 documented in [storage design](docs/storage-design.md).
-The [literature landscape](docs/literature-landscape.md) provides 22 verified
+The [literature landscape](docs/literature-landscape.md) provides 25 verified
 references and the current related-work positioning; the
 [kickoff proposal](docs/isc-rag-proposal.md) records the evidence gates and open
 project decisions.

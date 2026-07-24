@@ -99,78 +99,97 @@ deterministically evaluable answers.
    ISC-RAG instead asks the more controlled question: for one dialogue corpus,
    does a provenance-gated fact unit beat three fixed representation policies?
 
+### Rephrasing and decontextualization
+
+9. Eunsol Choi et al. (2021). [*Decontextualization: Making Sentences Stand-Alone*](https://aclanthology.org/2021.tacl-1.27/). TACL.
+   Defines rewriting a sentence with its context so it can be interpreted alone
+   while preserving its meaning, and evaluates it as preprocessing for retrieval.
+   ISC-RAG adopts this need for standalone units but adds atomicity, dialogue
+   attribution, and exact-quote provenance as a hard contract.
+
+10. Benjamin Newman et al. (2023). [*A Question Answering Framework for Decontextualizing User-facing Snippets from Scientific Documents*](https://aclanthology.org/2023.emnlp-main.193/). EMNLP.
+   Frames decontextualization as supplying missing context through question
+   generation, answering, and rewriting. It motivates auditing which contextual
+   additions a rewrite introduces; ISC-RAG must check those additions against a
+   transcript quotation rather than treating fluent rewriting as faithful.
+
+11. Zhenyun Deng, Yulong Chen, and Andreas Vlachos (2025). [*Improving Zero-shot Sentence Decontextualisation with Content Selection and Planning*](https://aclanthology.org/2025.emnlp-main.1258/). EMNLP.
+   Explicitly selects context needed to resolve ambiguity before rewriting a
+   sentence. It is a relevant future extraction baseline or ablation for
+   ISC-RAG, especially for pronouns, ellipsis, and speaker-dependent claims.
+
 ### Dialogue, interviews, and conversational retrieval
 
-9. Chenguang Zhu et al. (2021). [*MediaSum: A Large-scale Media Interview Dataset for Dialogue Summarization*](https://aclanthology.org/2021.naacl-main.474/). NAACL.
+12. Chenguang Zhu et al. (2021). [*MediaSum: A Large-scale Media Interview Dataset for Dialogue Summarization*](https://aclanthology.org/2021.naacl-main.474/). NAACL.
    Introduces the 463.6K-transcript NPR/CNN interview collection used by
    ISC-RAG. Its scale and multiparty broadcasts make it a useful real-dialogue
    retrieval corpus, though its original task is summarization.
 
-10. Ming Zhong et al. (2021). [*QMSum: A New Benchmark for Query-based Multi-domain Meeting Summarization*](https://aclanthology.org/2021.naacl-main.472/). NAACL.
+13. Ming Zhong et al. (2021). [*QMSum: A New Benchmark for Query-based Multi-domain Meeting Summarization*](https://aclanthology.org/2021.naacl-main.472/). NAACL.
     Provides query-to-relevant-span annotations over long meetings and a
     locate-then-summarize framing. It is especially relevant to the future
     multi-turn/multi-fact ISC-RAG evaluation slice.
 
-11. Song Feng et al. (2020). [*doc2dial: A Goal-Oriented Document-Grounded Dialogue Dataset*](https://aclanthology.org/2020.emnlp-main.652/). EMNLP.
+14. Song Feng et al. (2020). [*doc2dial: A Goal-Oriented Document-Grounded Dialogue Dataset*](https://aclanthology.org/2020.emnlp-main.652/). EMNLP.
     Grounds information-seeking dialogues in external documents. It differs from
     ISC-RAG because MediaSum itself is the human dialogue corpus being searched,
     rather than a dialogue about a separate source document.
 
-12. Prakhar Gupta et al. (2022). [*DialFact: A Benchmark for Fact-Checking in Dialogue*](https://aclanthology.org/2022.acl-long.263/). ACL.
+15. Prakhar Gupta et al. (2022). [*DialFact: A Benchmark for Fact-Checking in Dialogue*](https://aclanthology.org/2022.acl-long.263/). ACL.
     Pairs conversational claims with evidence retrieval and verification tasks,
     identifying dialogue-specific issues such as colloquial wording and
     coreference. Its evidence is Wikipedia; ISC-RAG's evidence is the source
     transcript itself.
 
-13. Yohan Lee, Yongwoo Song, and Sangyeop Kim (2025). [*Finding Diamonds in Conversation Haystacks: A Benchmark for Conversational Data Retrieval*](https://aclanthology.org/2025.emnlp-industry.162/). EMNLP Industry Track.
+16. Yohan Lee, Yongwoo Song, and Sangyeop Kim (2025). [*Finding Diamonds in Conversation Haystacks: A Benchmark for Conversational Data Retrieval*](https://aclanthology.org/2025.emnlp-industry.162/). EMNLP Industry Track.
     A dedicated conversational retrieval benchmark with query and conversation
     labels. It supports the premise that conversational retrieval remains hard,
     but studies product-insight tasks rather than source-grounded fact cards.
 
-14. Nouha Dziri et al. (2022). [*Evaluating Attribution in Dialogue Systems: The BEGIN Benchmark*](https://aclanthology.org/2022.tacl-1.62/). TACL.
+17. Nouha Dziri et al. (2022). [*Evaluating Attribution in Dialogue Systems: The BEGIN Benchmark*](https://aclanthology.org/2022.tacl-1.62/). TACL.
     Human annotations show that common automatic grounding metrics can fail,
     especially with longer knowledge sources. This is a reason to retain exact
     evidence labels and manual audits in ISC-RAG.
 
 ### Atomic facts, evidence, and provenance
 
-15. Sewon Min et al. (2023). [*FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation*](https://aclanthology.org/2023.emnlp-main.741/). EMNLP.
+18. Sewon Min et al. (2023). [*FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation*](https://aclanthology.org/2023.emnlp-main.741/). EMNLP.
     Evaluates generated text by decomposing it into atomic facts and checking
     support. ISC-RAG applies the atomic-unit idea earlier, at corpus ingestion,
     and still needs to report fact recall as well as precision/fidelity.
 
-16. Pranav Mani, Davis Liang, and Zachary Chase Lipton (2024). [*Fast Evidence Extraction for Grounded Language Model Outputs*](https://aclanthology.org/2024.fever-1.24/). FEVER Workshop.
+19. Pranav Mani, Davis Liang, and Zachary Chase Lipton (2024). [*Fast Evidence Extraction for Grounded Language Model Outputs*](https://aclanthology.org/2024.fever-1.24/). FEVER Workshop.
     Frames locating evidence spans for generated lines as a scalable task. It is
     relevant to validating the source span behind every extracted fact.
 
-17. Liyan Tang, Philippe Laban, and Greg Durrett (2024). [*MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents*](https://aclanthology.org/2024.emnlp-main.499/). EMNLP.
+20. Liyan Tang, Philippe Laban, and Greg Durrett (2024). [*MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents*](https://aclanthology.org/2024.emnlp-main.499/). EMNLP.
     Studies efficient checking of whether claims are supported by grounding
     documents. It is a useful secondary audit tool, but cannot replace exact
     quote-location validation in the primary pipeline.
 
-18. Joe Stacey et al. (2024). [*Atomic Inference for NLI with Generated Facts as Atoms*](https://aclanthology.org/2024.emnlp-main.569/). EMNLP.
+21. Joe Stacey et al. (2024). [*Atomic Inference for NLI with Generated Facts as Atoms*](https://aclanthology.org/2024.emnlp-main.569/). EMNLP.
     Shows that generated facts need a multi-stage treatment; direct use can hurt.
     This strengthens the case for separating extraction, provenance validation,
     and optional enrichment rather than treating all generated fact text as safe.
 
-19. James Thorne et al. (2018). [*The Fact Extraction and VERification (FEVER) Shared Task*](https://aclanthology.org/W18-5501/). FEVER Workshop.
+22. James Thorne et al. (2018). [*The Fact Extraction and VERification (FEVER) Shared Task*](https://aclanthology.org/W18-5501/). FEVER Workshop.
     A foundational claim-and-evidence benchmark. ISC-RAG borrows the principle of
     evaluating evidence retrieval separately from downstream decisions, while
     using transcript spans instead of Wikipedia evidence pages.
 
 ### RAG evaluation and answer attribution
 
-20. Shahul Es et al. (2024). [*RAGAs: Automated Evaluation of Retrieval Augmented Generation*](https://aclanthology.org/2024.eacl-demo.16/). EACL Demonstrations.
+23. Shahul Es et al. (2024). [*RAGAs: Automated Evaluation of Retrieval Augmented Generation*](https://aclanthology.org/2024.eacl-demo.16/). EACL Demonstrations.
     Separates context relevance, faithfulness, and answer quality without human
     reference labels. It is useful as a diagnostic complement, not a replacement
     for ISC-RAG's evidence-grounded deterministic labels.
 
-21. Jirui Qi et al. (2024). [*Model Internals-based Answer Attribution for Trustworthy Retrieval-Augmented Generation*](https://aclanthology.org/2024.emnlp-main.347/). EMNLP.
+24. Jirui Qi et al. (2024). [*Model Internals-based Answer Attribution for Trustworthy Retrieval-Augmented Generation*](https://aclanthology.org/2024.emnlp-main.347/). EMNLP.
     Examines whether RAG answer tokens can be attributed to retrieved documents.
     It motivates reporting citation/evidence correctness rather than accepting a
     model's requested citation format at face value.
 
-22. Weijia Zhang et al. (2024). [*Towards Fine-Grained Citation Evaluation in Generated Text: A Comparative Analysis of Faithfulness Metrics*](https://aclanthology.org/2024.inlg-main.35/). INLG.
+25. Weijia Zhang et al. (2024). [*Towards Fine-Grained Citation Evaluation in Generated Text: A Comparative Analysis of Faithfulness Metrics*](https://aclanthology.org/2024.inlg-main.35/). INLG.
     Finds no single automatic support metric reliable in every setting. ISC-RAG
     should therefore make exact evidence overlap and deterministic answer match
     primary, and use LLM judging as sensitivity analysis only.
@@ -215,8 +234,8 @@ proposal or paper.
 
 ## Quality report and open uncertainties
 
-- **Verified references:** 22 total; **21/22 (95%)** are 2020 or later;
-  **3/22 (14%)** are explicitly marked arXiv preprints; **0** have an unverified
+- **Verified references:** 25 total; **24/25 (96%)** are 2020 or later;
+  **3/25 (12%)** are explicitly marked arXiv preprints; **0** have an unverified
   URL in this document.
 - **Strongest nearest work:** Dense X Retrieval. The paper should cite it early,
   explain the common proposition idea, and make the different corpus,

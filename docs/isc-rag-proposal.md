@@ -37,11 +37,19 @@ ISC-RAG asks whether compiling dialogue into atomic, source-linked facts at inge
 **Keywords:** retrieval-augmented generation; dialogue; information extraction; provenance; vector retrieval  
 **Target fields:** information retrieval; natural-language processing; machine learning systems
 
+## Draft abstract
+
+Retrieval-augmented generation over human dialogue commonly indexes transcript chunks, but chunk boundaries can entangle a relevant claim with speaker changes, questions, and unrelated context. ISC-RAG tests an alternative ingestion representation: atomic fact cards whose text rephrases an explicit dialogue claim into a standalone form while retaining an immutable, exact supporting quotation and source speaker/turn offsets. The study compares fixed windows, turn-aware chunks, deterministic lexical-cohesion chunks, and provenance-validated fact cards over the same MediaSum interview transcripts. Embedding model, pgvector retrieval configuration, generation model, prompt, and answer-context budget are held constant so that retrieval representation is the primary treatment.
+
+The planned evaluation uses a candidate 100-question set with deterministic reference answers and exact supporting turns. Primary analysis measures paired evidence-retrieval performance; answer accuracy, citation correctness, context size, latency, index size, and extraction cost are reported separately. Because rephrasing may omit qualification, resolve ambiguity incorrectly, or change attribution, ISC-RAG treats exact quote location as necessary but insufficient: the protocol includes an independent audit of rephrasing fidelity, source entailment, and information loss. The project currently provides a runnable pilot and evaluation infrastructure; comparative results remain to be established under a frozen, document-disjoint development and test protocol.
+
 ## Background
 
 Dialogue is awkward RAG input: relevant claims may be surrounded by interruptions, speaker changes, questions, and unrelated discussion. Conventional systems choose an arbitrary chunk boundary and retrieve the resulting text block. ISC-RAG instead treats an explicit, standalone claim with an exact supporting quotation and source span as the retrieval unit.
 
-The design is deliberately not a claim that facts are universally better. Extraction can omit information, distort qualification, add cost, or reduce usefulness for questions needing broader context. The study therefore compares representations on the same corpus and reports fact fidelity and operational costs alongside outcome metrics. The project’s factual-pipeline and storage choices are documented in [fact-pipeline-design.md](fact-pipeline-design.md) and [storage-design.md](storage-design.md). A source-verified [literature landscape](literature-landscape.md) identifies the closest known work and preserves explicit novelty uncertainties; this proposal makes no unsupported priority claim.
+The fact text is a controlled **rephrasing** (more precisely, decontextualization): it may resolve anaphora or add source-local context so that the claim can be read alone, but it must not add a new claim, alter modality/negation/time, or erase attribution. This connects ISC-RAG to sentence decontextualization work, including [Choi et al. (2021)](https://aclanthology.org/2021.tacl-1.27/) and [Newman et al. (2023)](https://aclanthology.org/2023.emnlp-main.193/), while making the rewrite an indexable retrieval unit with an immutable provenance record.
+
+The design is deliberately not a claim that facts are universally better. Rephrasing/extraction can omit information, distort qualification, add cost, or reduce usefulness for questions needing broader context. The study therefore compares representations on the same corpus and reports rephrasing fidelity and operational costs alongside outcome metrics. The project’s factual-pipeline and storage choices are documented in [fact-pipeline-design.md](fact-pipeline-design.md) and [storage-design.md](storage-design.md). A source-verified [literature landscape](literature-landscape.md) identifies the closest known work and preserves explicit novelty uncertainties; this proposal makes no unsupported priority claim.
 
 ## Objectives, research questions, core contributions
 
@@ -94,9 +102,9 @@ The corpus, document split, question set, embedding model, pgvector distance/ind
 | Fixed | 4,000-byte transcript windows with 400-byte overlap in current v1 | Freeze exact parameters on dev only |
 | Turn-aware | Speaker turns packed to the same maximum size | Freeze exact packing rule on dev only |
 | Semantic | Deterministic lexical-cohesion chunks; current v1 uses 2,000-byte minimum | Freeze boundary and maximum-size rule on dev only |
-| ISC facts | Atomic facts with exact source quote, offsets, speaker, and turn range | Primary form must be declared: facts only or fact-plus-parent-turn |
+| ISC facts | Atomic, decontextualized/rephrased facts with exact source quote, offsets, speaker, and turn range | Primary form must be declared: facts only or fact-plus-parent-turn |
 
-Fact extraction uses a structured, domain-neutral prompt with temperature zero in the current implementation. Facts without an exact located quote are discarded. Optional topic/triple enrichment cannot silently be part of the primary condition; it is an ablation. Exact duplicate removal is part of the planned primary fact condition; semantic clustering is an ablation.
+Fact extraction uses a structured, domain-neutral prompt with temperature zero in the current implementation. The fact text is allowed to rephrase a span only to make its meaning standalone; the evidence quote itself is stored unchanged. Facts without an exact located quote are discarded. Optional topic/triple enrichment cannot silently be part of the primary condition; it is an ablation. Exact duplicate removal is part of the planned primary fact condition; semantic clustering is an ablation.
 
 ### Evaluation data and split discipline
 
@@ -125,7 +133,7 @@ Fact extraction uses a structured, domain-neutral prompt with temperature zero i
 
 **Answer metrics:** strict normalized exact match against the stored deterministic answer; a separately reported lenient numeric-normalization score only if predeclared; citation/evidence correctness; and unsupported-answer rate. Correct answers without retrieved gold evidence must not be counted as retrieval successes.
 
-**Fact-fidelity metrics:** exact quote-validation rate, independently audited entailment/support rate, fact coverage/missed-major-claim rate, and exact/near-duplicate rate. A random, stratified audit sample and the annotation rubric must be selected before extraction at scale.
+**Fact/rephrasing-fidelity metrics:** exact quote-validation rate; independently audited support, attribution, qualifier-preservation, and standalone-clarity rates; fact coverage/missed-major-claim rate; and exact/near-duplicate rate. A random, stratified audit sample and the annotation rubric must be selected before extraction at scale.
 
 **Inference:** compare conditions on the same questions; report paired point differences with paired bootstrap confidence intervals. Report all four conditions, not merely the best chunk baseline. Inspect and categorize wins/losses by question type and transcript properties. The full sample-size/power rationale, bootstrap resample count, alpha/interval convention, and treatment of API failures remain ❌ decisions to document before the run.
 
@@ -135,7 +143,7 @@ Fact extraction uses a structured, domain-neutral prompt with temperature zero i
 | --- | --- |
 | Tuning on the test set | Keep canonical v1 out of tuning; create a document-disjoint dev set and freeze configurations first. |
 | Representation confounding | Match corpus, models, prompt, vector configuration, retrieval budget, and scoring across conditions. |
-| Fact hallucination or lost qualification | Require exact quote provenance; audit support and omissions; report failures rather than filtering them from analysis. |
+| Rephrasing hallucination, lost qualification, or attribution drift | Require exact quote provenance; audit support, qualifier preservation, attribution, and omissions; report failures rather than filtering them from analysis. |
 | Label bias or weak gold | Independent audit of all/stratified labels, adjudication procedure, frozen checksum, and transparent corrections/versioning. |
 | Generator masking retrieval differences | Make retrieval evidence metrics primary; evaluate generated answers separately with citations. |
 | Single corpus/question-type overclaim | Limit primary claim to explicit, one-hop MediaSum dialogue claims; label FOMC/multi-turn extensions as separate studies. |
