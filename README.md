@@ -31,6 +31,8 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
 - **2026-07-24:** Added and database-validated a 100-question canonical MediaSum
   test set with exact turn evidence and deterministic reference answers; see
   [canonical-question notes](examples/canonical-questions-v1.README.md).
+- **2026-07-24:** Added a source-verified literature landscape and a kickoff
+  proposal; both distinguish the runnable pilot from unrun empirical claims.
 
 ## Initial study design
 
@@ -43,6 +45,10 @@ The proposed fact-pipeline contract, provenance validation, enrichment pass, and
 ablation boundaries are documented in [fact-pipeline design](docs/fact-pipeline-design.md).
 The canonical-data, vector-projection, and index-synchronization boundaries are
 documented in [storage design](docs/storage-design.md).
+The [literature landscape](docs/literature-landscape.md) provides 22 verified
+references and the current related-work positioning; the
+[kickoff proposal](docs/isc-rag-proposal.md) records the evidence gates and open
+project decisions.
 
 ## Resources
 
