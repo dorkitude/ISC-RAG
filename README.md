@@ -25,6 +25,9 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   [storage design](docs/storage-design.md).
 - **2026-07-23:** Implemented PostgreSQL migrations and MediaSum JSONL ingestion;
   verified with 10 documents and 309 source turns in the local database.
+- **2026-07-23:** Implemented all four retrieval representations, Fireworks-backed
+  fact extraction with exact quote validation, pgvector embeddings/search, and a
+  question/evidence evaluation runner.
 
 ## Initial study design
 
@@ -69,7 +72,7 @@ From this project directory, bootstrap through the Go/Cobra CLI with:
 ```
 
 `bootstrap.sh` only verifies that Go is installed and delegates to
-`isc-rag bootstrap`. The command loads the local `.env`, requires both API keys,
+`isc-rag bootstrap`. The command loads the local `.env`, requires the Fireworks key,
 then verifies existing MediaSum files or downloads the pinned files atomically
 into `resources/mediasum/` with SHA-256 validation. MediaSum remains restricted
 to research use under the source release terms.
@@ -103,6 +106,66 @@ the portable default.
 
 The ingestion command reads MediaSum JSONL, upserts canonical documents, and
 stores every ordered speaker turn with source-character offsets.
+
+## Runnable experiment pipeline
+
+The default `v1` setup uses 4,000-byte units, 400-byte fixed-window overlap, and
+a 2,000-byte minimum for the deterministic lexical-cohesion semantic baseline.
+These byte offsets match the stored canonical UTF-8 transcript offsets. Build the
+three chunking conditions plus the internal 10,000-byte fact-input units:
+
+```sh
+go run ./cmd/isc-rag build --representation all --version v1 --split test --limit 100
+```
+
+Extract facts only after `fact-input/v1` is built. The extractor accepts only
+JSON facts with a short exact quotation; a fact is discarded unless that quotation
+is found in the canonical transcript. The `facts/v1` source units are the ISC-RAG
+fourth condition.
+
+```sh
+go run ./cmd/isc-rag extract facts --version v1 --input-version v1 --split test --limit 100
+go run ./cmd/isc-rag enrich --version v1
+go run ./cmd/isc-rag embed --representation fixed --version v1 --split test
+go run ./cmd/isc-rag embed --representation turn --version v1 --split test
+go run ./cmd/isc-rag embed --representation semantic --version v1 --split test
+go run ./cmd/isc-rag embed --representation facts --version v1 --split test
+go run ./cmd/isc-rag index --embedding-model nomic-ai/nomic-embed-text-v1.5
+go run ./cmd/isc-rag retrieve --representation facts --version v1 --split test --query 'What did the guest say about climate policy?'
+```
+
+`enrich` is optional metadata enrichment: it adds topics and subject–relation–target
+triples but never changes fact text or evidence, so it is not part of the primary
+fact-only condition unless explicitly enabled as an ablation.
+
+Model names are command flags, so the experiment records a chosen model instead
+of hiding a provider choice. The current account-visible default is Fireworks
+GPT-OSS 120B for extraction/generation; Nomic Embed Text v1.5 remains the
+embedding default. Confirm model availability on the account before a large run.
+API calls can incur provider costs.
+
+### Evaluation labels and run
+
+Create independently authored questions as JSONL; the supplied MediaSum summary is
+not used as an answer or evidence label. Each evidence item identifies a canonical
+document external ID and inclusive turn range:
+
+```json
+{"external_id":"pilot-001","corpus_split":"dev","question_type":"single_fact","text":"What did the guest say?","reference_answer":"...","evidence":[{"document_external_id":"<MediaSum id>","turn_start":4,"turn_end":4}]}
+```
+
+Import labels and run a retrieval trial. The runner persists each ranked source
+unit and reports gold-evidence recall@k; `--generate` additionally stores answers
+that must cite `[S#]` retrieved source labels.
+
+```sh
+go run ./cmd/isc-rag evaluate questions pilot-questions.jsonl
+go run ./cmd/isc-rag evaluate run --representation facts --version v1 --question-split dev --corpus-split test --top-k 5 --generate
+```
+
+Run the same fixed question set and flags once for `fixed`, `turn`, `semantic`,
+and `facts`. Do not tune one representation on the held-out evaluation set.
+`examples/smoke-questions.jsonl` is only a wiring test, not a study label set.
 
 ## Project log
 

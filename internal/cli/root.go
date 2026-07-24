@@ -17,6 +17,13 @@ func Execute() {
 	root.AddCommand(newBootstrapCommand())
 	root.AddCommand(newMigrateCommand())
 	root.AddCommand(newIngestCommand())
+	root.AddCommand(newBuildCommand())
+	root.AddCommand(newExtractCommand())
+	root.AddCommand(newEmbedCommand())
+	root.AddCommand(newRetrieveCommand())
+	root.AddCommand(newEvaluateCommand())
+	root.AddCommand(newIndexCommand())
+	root.AddCommand(newEnrichCommand())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

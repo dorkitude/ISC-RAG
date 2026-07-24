@@ -44,7 +44,7 @@ Compare four representations of exactly the same source corpus:
 | --- | --- |
 | Fixed chunks | Fixed token-size windows with declared overlap |
 | Turn-aware chunks | Whole speaker turns, split only when required by a maximum size |
-| Semantic chunks | Boundaries inferred from transcript content under a declared size range |
+| Semantic chunks | Deterministic lexical-cohesion boundaries under a declared size range |
 | ISC facts | Atomic, source-grounded facts extracted at ingest time |
 
 Keep the embedding model, vector-store configuration, retrieval algorithm,
@@ -175,7 +175,9 @@ facts-v1, fixed-chunks-v1, turn-chunks-v1, semantic-chunks-v1
 Embeddings are stored in PostgreSQL, keyed by source-unit UUID and embedding model.
 Store document/source-unit IDs, corpus split, representation version, embedding
 model, and pipeline run in relational columns. Never separate a fact from its
-canonical provenance.
+canonical provenance. The CLI creates one partial HNSW pgvector index per
+embedding model and dimension after embeddings exist; it refuses mixed-dimension
+model rows.
 
 ### Synchronization rule
 
@@ -207,16 +209,21 @@ corpus is separately downloaded at `resources/mediasum/`.
    runs, facts, fact evidence, and pgvector embeddings.
 2. Implement MediaSum canonical ingestion and frozen subset/split creation.
 3. Implement the four representation builders, starting with fixed and turn-aware
-   chunks as reproducibility baselines.
+   chunks as reproducibility baselines. **Implemented:** `build` has fixed,
+   turn-aware, lexical-cohesion semantic, and fact-input builders.
 4. Implement the two-stage fact pipeline and quote-provenance validator.
+   **Implemented:** `extract facts` performs raw extraction and exact quote
+   validation; `enrich` adds optional topic/triple metadata as a declared ablation.
 5. Add pgvector embedding writes and representation-specific similarity indexes.
+   **Implemented:** `embed`, `index`, and `retrieve` use the database only.
 6. Create the question/evidence annotation format and annotate a pilot set.
+   **Format and importer implemented; human pilot annotation remains.**
 7. Run a pilot, inspect failure modes, freeze configuration, then execute the
    full comparison and ablations.
 
 ## 9. Open decisions
 
-- Fireworks models for extraction, enrichment, embedding, and answer generation.
+- Freeze Fireworks models for extraction, enrichment, embedding, and answer generation.
 - MediaSum working-subset size and stratification policy.
 - CNN grouping rule and maximum transcript/unit size.
 - Neutral topic/tag policy and triple schema.
@@ -234,5 +241,14 @@ corpus is separately downloaded at `resources/mediasum/`.
   is present.
 - PostgreSQL migrations and MediaSum JSONL ingestion are implemented and verified
   locally with a 10-document / 309-turn sample.
-- The fact pipeline, representation builders, pgvector similarity indexes, and
-  evaluation workflow remain to be implemented.
+- All primary representation builders are implemented and verified on a local
+  ten-document / 309-turn MediaSum smoke sample (25 fixed, 24 turn-aware, 31
+  semantic, and 13 fact-input units).
+- The raw fact extractor performs exact quote-provenance validation before facts
+  become retrieval units. Credentialed Fireworks extraction, enrichment,
+  embedding, retrieval, and answer-generation smoke runs have succeeded; model
+  selection still needs to be frozen before the pilot.
+- pgvector embedding writes, model-specific HNSW indexing, single-query search,
+  question/evidence import, retrieval evaluation, and optional answer persistence
+  are implemented. Independently authored pilot questions and full experiment
+  execution remain.
