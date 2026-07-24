@@ -49,8 +49,8 @@ turn. A fact without verified source provenance is discarded.
    subject–relation–target triple while preserving raw fact text verbatim. Retry
    only missing enrichment outputs. The enrichment model must not revise facts.
 6. **Embed and index.** Embed the same fact text (and, if adopted, a declared
-   topic prefix) into Turbopuffer. Store all provenance and extraction metadata as
-   filterable metadata.
+   topic prefix) into PostgreSQL with pgvector. Store all provenance and extraction
+   metadata in the canonical relational records.
 
 ## Prompt constraints
 

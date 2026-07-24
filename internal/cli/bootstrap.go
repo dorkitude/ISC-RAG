@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -30,11 +32,17 @@ var mediaSumFiles = []corpusFile{
 
 func newBootstrapCommand() *cobra.Command {
 	var projectDir string
+	var installDependencies bool
 
 	command := &cobra.Command{
 		Use:   "bootstrap",
 		Short: "Validate local credentials and acquire the pinned MediaSum resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if installDependencies {
+				if err := installPostgresDependencies(cmd); err != nil {
+					return err
+				}
+			}
 			absoluteProjectDir, err := filepath.Abs(projectDir)
 			if err != nil {
 				return fmt.Errorf("resolve project directory: %w", err)
@@ -58,6 +66,7 @@ func newBootstrapCommand() *cobra.Command {
 	}
 
 	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	command.Flags().BoolVar(&installDependencies, "install-deps", false, "install PostgreSQL 17 and pgvector on the host")
 	return command
 }
 
@@ -76,7 +85,7 @@ func loadLocalEnv(projectDir string) error {
 
 func requireCredentials() error {
 	missing := make([]string, 0, 2)
-	for _, name := range []string{"FIREWORKS_API_KEY", "TURBOPUFFER_API_KEY"} {
+	for _, name := range []string{"FIREWORKS_API_KEY"} {
 		if strings.TrimSpace(os.Getenv(name)) == "" {
 			missing = append(missing, name)
 		}
@@ -85,6 +94,33 @@ func requireCredentials() error {
 		return fmt.Errorf("missing required environment variable(s): %s; set them in .env or the shell environment", strings.Join(missing, ", "))
 	}
 	return nil
+}
+
+func installPostgresDependencies(cmd *cobra.Command) error {
+	var program string
+	var args []string
+	switch runtime.GOOS {
+	case "darwin":
+		if _, err := exec.LookPath("brew"); err != nil {
+			return errors.New("Homebrew is required on macOS; install it from https://brew.sh, then rerun --install-deps")
+		}
+		program, args = "brew", []string{"install", "postgresql@17", "pgvector"}
+	case "linux":
+		if _, err := exec.LookPath("apt-get"); err == nil {
+			program, args = "sudo", []string{"apt-get", "install", "-y", "postgresql-17", "postgresql-17-pgvector"}
+		} else if _, err := exec.LookPath("dnf"); err == nil {
+			program, args = "sudo", []string{"dnf", "install", "-y", "postgresql-server", "pgvector"}
+		} else if _, err := exec.LookPath("pacman"); err == nil {
+			program, args = "sudo", []string{"pacman", "-S", "--needed", "postgresql", "pgvector"}
+		} else {
+			return errors.New("unsupported Linux package manager; install PostgreSQL 17 and pgvector, or use docker compose")
+		}
+	default:
+		return fmt.Errorf("automatic host installation is not implemented for %s; use the project Docker Compose stack", runtime.GOOS)
+	}
+	command := exec.CommandContext(cmd.Context(), program, args...)
+	command.Stdin, command.Stdout, command.Stderr = os.Stdin, cmd.OutOrStdout(), cmd.ErrOrStderr()
+	return command.Run()
 }
 
 func acquireFile(ctx context.Context, dataDir string, file corpusFile) error {

@@ -14,14 +14,14 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   [MediaSum provenance](resources/mediasum/README.md).
 - **2026-07-23:** Added the official MediaSum repository as a Git submodule, pinned
   at commit `7c92589bb6e69e678d043a9cf8c8c7285cd88055`.
-- **2026-07-23:** Added local Fireworks and Turbopuffer credential configuration.
+- **2026-07-23:** Added local Fireworks credential configuration.
 - **2026-07-23:** Replaced the shell downloader with the Go/Cobra `isc-rag`
   command-line interface.
 - **2026-07-23:** Adopted a proposed source-grounded, two-stage fact-pipeline
   design adapted from the Endgame implementation; see
   [fact-pipeline design](docs/fact-pipeline-design.md).
-- **2026-07-23:** Chose PostgreSQL as the canonical experiment database and
-  Turbopuffer as its derived vector-search layer; see
+- **2026-07-23:** Chose PostgreSQL with pgvector as the fully open-source
+  canonical database and vector-search layer; see
   [storage design](docs/storage-design.md).
 - **2026-07-23:** Implemented PostgreSQL migrations and MediaSum JSONL ingestion;
   verified with 10 documents and 309 source turns in the local database.
@@ -83,12 +83,12 @@ Git. `.env_example` is the tracked template:
 cp .env_example .env
 ```
 
-Set `FIREWORKS_API_KEY` and `TURBOPUFFER_API_KEY` in the local `.env` before
+Set `FIREWORKS_API_KEY` in the local `.env` before
 running experiments. Do not put real keys in the README, scripts, or commits.
 
 ## Local database
 
-Start the project-local PostgreSQL service, add the template `DATABASE_URL` to
+Start the project-local PostgreSQL + pgvector service, add the template `DATABASE_URL` to
 your local `.env`, then apply migrations and ingest a small working sample:
 
 ```sh
@@ -96,6 +96,10 @@ docker compose up -d postgres
 go run ./cmd/isc-rag migrate
 go run ./cmd/isc-rag ingest mediasum --split test --limit 100
 ```
+
+For a host-native installation, use `./bootstrap.sh --install-deps`. It supports
+Homebrew on macOS and apt, dnf, or pacman on Linux; the Docker Compose stack is
+the portable default.
 
 The ingestion command reads MediaSum JSONL, upserts canonical documents, and
 stores every ordered speaker turn with source-character offsets.

@@ -142,8 +142,9 @@ extraction fidelity and provenance coverage are also reported.
 
 ## 6. Storage architecture
 
-Use PostgreSQL as the canonical database and Turbopuffer as the derived vector
-search layer. Do not use MongoDB or SQLite as the primary experiment store.
+Use PostgreSQL with pgvector as the canonical database and vector-search layer.
+Do not use MongoDB, SQLite, or an external vector store as the primary experiment
+store.
 
 ### PostgreSQL source-of-truth tables
 
@@ -155,7 +156,6 @@ search layer. Do not use MongoDB or SQLite as the primary experiment store.
 | `facts` | Atomic fact text, enrichment, state, and content hash |
 | `fact_evidence` | Verified quote and source-span provenance |
 | `pipeline_runs` | Model, prompt, configuration, cost, and status |
-| `index_outbox` | Durable Turbopuffer create/update/delete events |
 | `corpus_splits` | Frozen split and scale-study assignments |
 | `questions`, `gold_evidence` | Evaluation questions and supporting spans |
 | `experiment_runs`, `retrievals`, `answers`, `judgments` | Reproducible experiment artifacts |
@@ -163,28 +163,25 @@ search layer. Do not use MongoDB or SQLite as the primary experiment store.
 Use normalized columns for stable entities and `jsonb` only for flexible provider
 responses and auxiliary metadata.
 
-### Turbopuffer projections
+### pgvector representations
 
 Maintain independent versioned namespaces, such as:
 
 ```text
-isc-rag-facts-v1
-isc-rag-fixed-chunks-v1
-isc-rag-turn-chunks-v1
-isc-rag-semantic-chunks-v1
+facts / source_units rows with representation_version values:
+facts-v1, fixed-chunks-v1, turn-chunks-v1, semantic-chunks-v1
 ```
 
-Vector IDs match PostgreSQL UUIDs. Store document/source-unit IDs, corpus split,
-representation version, embedding model, and pipeline run as metadata. Never use
-the vector store as the only record of a fact or its provenance.
+Embeddings are stored in PostgreSQL, keyed by source-unit UUID and embedding model.
+Store document/source-unit IDs, corpus split, representation version, embedding
+model, and pipeline run in relational columns. Never separate a fact from its
+canonical provenance.
 
 ### Synchronization rule
 
-Persist a canonical extraction result and its evidence in one PostgreSQL
-transaction, write matching index-outbox events in that same transaction, then
-have a worker apply the events to Turbopuffer. Re-extraction produces explicit
-supersession/delete events. A reconciliation job can rebuild any vector namespace
-from PostgreSQL.
+Persist a canonical extraction result, its evidence, and embedding in one
+PostgreSQL transaction. Re-extraction supersedes prior facts transactionally.
+The database is the only index to reconcile.
 
 ## 7. Tooling and local setup
 
@@ -195,7 +192,7 @@ The project uses Go and Cobra for its CLI.
 ```
 
 `bootstrap.sh` checks that Go is installed and invokes `isc-rag bootstrap`. The
-CLI loads `.env`, requires `FIREWORKS_API_KEY` and `TURBOPUFFER_API_KEY`, then
+CLI loads `.env`, requires `FIREWORKS_API_KEY`, then
 verifies or downloads the pinned MediaSum release.
 
 Local secrets go only in `.env`, which is ignored by Git. `.env_example` is the
@@ -207,12 +204,12 @@ corpus is separately downloaded at `resources/mediasum/`.
 ## 8. Immediate implementation sequence
 
 1. Provision PostgreSQL locally and add migrations for documents, turns, pipeline
-   runs, facts, fact evidence, and index outbox.
+   runs, facts, fact evidence, and pgvector embeddings.
 2. Implement MediaSum canonical ingestion and frozen subset/split creation.
 3. Implement the four representation builders, starting with fixed and turn-aware
    chunks as reproducibility baselines.
 4. Implement the two-stage fact pipeline and quote-provenance validator.
-5. Add Turbopuffer indexing through the outbox worker.
+5. Add pgvector embedding writes and representation-specific similarity indexes.
 6. Create the question/evidence annotation format and annotate a pilot set.
 7. Run a pilot, inspect failure modes, freeze configuration, then execute the
    full comparison and ablations.
@@ -232,9 +229,10 @@ corpus is separately downloaded at `resources/mediasum/`.
 
 - MediaSum is downloaded locally, pinned, and SHA-256 verified.
 - The official MediaSum repository is a pinned Git submodule.
-- The Go/Cobra bootstrap command is implemented and validates local Fireworks and
-  Turbopuffer keys before ensuring the resource is present.
+- The Go/Cobra bootstrap command is implemented, validates the Fireworks key,
+  supports opt-in PostgreSQL/pgvector host installation, and ensures the resource
+  is present.
 - PostgreSQL migrations and MediaSum JSONL ingestion are implemented and verified
   locally with a 10-document / 309-turn sample.
-- The fact pipeline, representation builders, Turbopuffer outbox worker, and
+- The fact pipeline, representation builders, pgvector similarity indexes, and
   evaluation workflow remain to be implemented.
