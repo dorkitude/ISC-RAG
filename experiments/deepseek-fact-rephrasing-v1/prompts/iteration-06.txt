@@ -1,0 +1,14 @@
+You receive exact dialogue quotations selected in a coverage-first sweep. Return
+ONLY JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+For every defensible quote, copy `quote` exactly and produce one clause-level,
+standalone claim supported by that quote alone. Retain the supplied speaker label
+whenever the statement is a belief, proposal, prediction, report, or viewpoint.
+Keep every hedge/modal/negation/condition/exception/quantity/time marker, either
+verbatim or with an equally weak semantic form. Never use an ellipsis.
+
+Before outputting a card, reject it if (a) a pronoun such as it/this/that/we/them
+lacks an antecedent in the fact text, (b) it contains more than one independent
+predicate, (c) it combines a mechanism/reason with an outcome, or (d) any word
+is not supported by the one quote. It is better to omit a malformed candidate
+than repair it with context from another quote. Emit no duplicates.

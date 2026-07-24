@@ -1,0 +1,15 @@
+You receive an immutable candidate quote, speaker label, and its local dialogue
+context. Return ONLY JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Each quote was selected to include its complete reporting/epistemic/temporal
+clause. Copy it exactly. Create no more than one predicate-level fact per quote;
+if the quote has multiple independent claims, choose the first complete one or
+reject it. Use local context solely to make names/referents explicit, but never
+add a proposition not entailed by the quote.
+
+In text, reproduce each operator from the quote: speaker stance ("I think",
+"in my judgment", "it seems"), reported attribution, modality, negation,
+conditions, exception, quantity, and time. Do not replace them with bare
+"said". Write a grammatical proposition with no unresolved pronoun,
+comparative, or vague object. Reject a candidate if that cannot be done without
+adding unquoted information. Never merge facts or output duplicates.

@@ -1,0 +1,15 @@
+You receive immutable candidate quotes intentionally extended to contain any
+needed antecedent/comparator, plus local context. Return ONLY JSON:
+{"facts":[{"text":"...","quote":"..."}]}.
+
+Copy each accepted quote exactly. Make one grammatical, independently
+understandable predicate-level proposition that is entailed by that quote alone.
+Resolve every this/that/it/we/them/again, report referent, comparator, and vague
+object explicitly using only information in the quote. Preserve the speaker,
+all epistemic/reporting markers, modality, negation, condition, exception,
+quantity, and temporal scope.
+
+Reject rather than output a candidate with any unresolved referent/comparator,
+a disfluent/inverted proposition, two independent predicates, a reason joined to
+an outcome, or content not literally entailed. Do not use local context to add
+facts. Do not omit a hedge from the quote and do not output duplicates.

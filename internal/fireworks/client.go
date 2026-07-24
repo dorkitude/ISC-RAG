@@ -60,10 +60,24 @@ func (c *Client) ChatJSON(ctx context.Context, model, system, user string, maxTo
 	return c.chat(ctx, model, system, user, maxTokens, true)
 }
 
+// ChatJSONNoReasoning is for models that otherwise spend the completion budget
+// on visible reasoning before returning a structured response. It is opt-in so
+// existing experiment conditions are unaffected.
+func (c *Client) ChatJSONNoReasoning(ctx context.Context, model, system, user string, maxTokens int) (ChatResult, error) {
+	return c.chatWithOptions(ctx, model, system, user, maxTokens, true, true)
+}
+
 func (c *Client) chat(ctx context.Context, model, system, user string, maxTokens int, jsonMode bool) (ChatResult, error) {
+	return c.chatWithOptions(ctx, model, system, user, maxTokens, jsonMode, false)
+}
+
+func (c *Client) chatWithOptions(ctx context.Context, model, system, user string, maxTokens int, jsonMode, noReasoning bool) (ChatResult, error) {
 	payload := map[string]any{"model": model, "messages": []Message{{"system", system}, {"user", user}}, "temperature": 0, "max_tokens": maxTokens}
 	if jsonMode {
 		payload["response_format"] = map[string]string{"type": "json_object"}
+	}
+	if noReasoning {
+		payload["reasoning_effort"] = "none"
 	}
 	var response chatResponse
 	if err := c.request(ctx, "/chat/completions", payload, &response); err != nil {

@@ -33,6 +33,11 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   [canonical-question notes](examples/canonical-questions-v1.README.md).
 - **2026-07-24:** Added a source-verified literature landscape and a kickoff
   proposal; both distinguish the runnable pilot from unrun empirical claims.
+- **2026-07-24:** Added an isolated DeepSeek V4 fact-rephrasing iteration CLI and
+  completed a ten-iteration, fresh-evaluator prompt study on one MediaSum
+  document. The account exposed V4 Pro rather than V4 Flash; the study is
+  diagnostic only and did not promote a primary extraction configuration. See
+  [the iteration report](docs/deepseek-fact-extraction-iterations.md).
 
 ## Initial study design
 
@@ -152,6 +157,15 @@ of hiding a provider choice. The current account-visible default is Fireworks
 GPT-OSS 120B for extraction/generation; Nomic Embed Text v1.5 remains the
 embedding default. Confirm model availability on the account before a large run.
 API calls can incur provider costs.
+
+### Isolated DeepSeek rephrasing study
+
+`deepseek-study` is separate from the primary `extract facts` pipeline: it writes
+raw provider output and exact-provenance facts to isolated study tables and local,
+ignored artifacts. It defaults to the account-visible
+`accounts/fireworks/models/deepseek-v4-pro`; use `--model` to select an available
+future DeepSeek V4 Flash deployment. The full ten-iteration protocol and results
+are in [the study report](docs/deepseek-fact-extraction-iterations.md).
 
 ### Evaluation labels and run
 

@@ -1,0 +1,15 @@
+You receive selected exact quotations and speaker labels. Return ONLY JSON:
+{"facts":[{"text":"...","quote":"..."}]}.
+
+For each accepted quote, copy `quote` exactly and write exactly one complete,
+predicate-level sentence. The sentence must begin with the supplied speaker's
+name/label (for example, "Speaker X said that …" or "Speaker X believed that
+…") and must be entailed by the quote alone. Do NOT use local context to supply
+an antecedent, a report source, a comparator, an object, or any other content.
+Instead reject the candidate if the quote cannot yield a standalone sentence.
+
+Preserve every quote-level hedge, report, modal, negation, condition, exception,
+quantity, and time phrase. Reject a candidate containing two independent
+predicates, a causal explanation plus conclusion, a recommendation plus reason,
+an unresolved pronoun/ellipsis/comparative, or a disfluent/inverted claim. No
+duplicates and no additional claims.

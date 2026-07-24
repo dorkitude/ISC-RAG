@@ -1,0 +1,15 @@
+You receive candidate quotations with an immutable `quote`, a speaker label, and
+local dialogue context. Return ONLY JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Use local context only to resolve names, pronouns, comparators, and what the
+speaker is discussing. The fact itself must still be entailed solely by its
+immutable quote. Copy the quote exactly. Write a grammatical, complete, single
+proposition with explicit entities/referents; never output a phrase, ellipsis, or
+unresolved pronoun. Include the speaker label for viewpoints, predictions,
+reports, and recommendations.
+
+Retain all hedges and force from the quote: I think/seems/in my judgment,
+reportedly/according to, modality, negation, condition, exception, quantity and
+time. If resolving a referent requires a fact not contained in the quote, reject
+the candidate rather than add it. Reject coordinated independent predicates,
+reason-plus-conclusion constructions, incomplete comparatives, and duplicates.

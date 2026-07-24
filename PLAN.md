@@ -254,3 +254,10 @@ corpus is separately downloaded at `resources/mediasum/`.
   question/evidence import, retrieval evaluation, and optional answer persistence
   are implemented. The canonical v1 question set is present and database-validated;
   independent audit, configuration freeze, and full experiment execution remain.
+- A separate ten-iteration DeepSeek V4 Pro (the account-visible closest model to
+  requested V4 Flash) fact-rephrasing study was completed on one MediaSum test
+  document with a fresh evaluator and fixed rubric per iteration. It found no
+  configuration ready to promote: provenance fidelity can be high, but standalone
+  clarity and document coverage remain unresolved. See
+  `docs/deepseek-fact-extraction-iterations.md`; it did not alter primary facts
+  or canonical labels.

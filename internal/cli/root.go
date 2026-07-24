@@ -24,6 +24,7 @@ func Execute() {
 	root.AddCommand(newEvaluateCommand())
 	root.AddCommand(newIndexCommand())
 	root.AddCommand(newEnrichCommand())
+	root.AddCommand(newDeepSeekStudyCommand())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

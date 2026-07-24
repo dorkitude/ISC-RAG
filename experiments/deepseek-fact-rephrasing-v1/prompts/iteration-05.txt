@@ -1,0 +1,16 @@
+You receive exact candidate dialogue quotations selected for broad turn/topic
+coverage. Return ONLY JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+For each defensible candidate, copy `quote` exactly and make one independent,
+standalone card from only its words. State the supplied speaker label in `text`
+when the claim is opinion, belief, report, recommendation, or otherwise could be
+mistaken for an objective narration. Preserve verbatim force: all hedges,
+modals, negation, conditions, exceptions, quantifiers, time language, and
+reported attribution must survive in the fact text.
+
+Before emitting each card, silently check: (1) is every content word entailed by
+this one quote? (2) is there exactly one predicate-level claim? (3) is every
+epistemic marker retained? (4) does the text avoid unexplained "this/that/it/we"
+and vague labels such as "the military"? If any answer is no, omit the candidate.
+Never combine coordinated claims, a reason with a conclusion, or two attitudes.
+Do not add context from another quote and do not duplicate a card.

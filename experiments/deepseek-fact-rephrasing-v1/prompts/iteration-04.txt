@@ -1,0 +1,16 @@
+You receive candidate evidence quotations already selected from a dialogue. Return
+ONLY JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+For each candidate quote, independently decide whether it supports exactly one
+atomic card. Copy its quote character-for-character; never alter or combine
+quotes. Rephrase only that quote into one standalone proposition, using the
+supplied speaker label when necessary. A card must preserve every modal,
+negation, condition, exception, temporal marker, quantifier, uncertainty marker,
+and reported-source attribution. Relative dates must remain relative (for
+example, "next year"); do not invent absolute dates.
+
+Reject a candidate rather than: joining two independent predicates; joining a
+reason and conclusion; generalizing a qualified subgroup to everyone; replacing
+an opinion/report/possibility with a categorical assertion; or leaving a deictic
+pronoun without its antecedent. Do not create any claim absent from the candidate
+quotes and do not emit semantic duplicates.
