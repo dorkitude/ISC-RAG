@@ -4,6 +4,8 @@ ISC-RAG studies whether ingest-time extraction of atomic, source-linked facts
 improves retrieval-augmented generation over conventional text chunking for real
 human dialogue.
 
+The authoritative project roadmap is [PLAN.md](PLAN.md).
+
 ## Status
 
 - **2026-07-23:** Project created.
@@ -15,6 +17,14 @@ human dialogue.
 - **2026-07-23:** Added local Fireworks and Turbopuffer credential configuration.
 - **2026-07-23:** Replaced the shell downloader with the Go/Cobra `isc-rag`
   command-line interface.
+- **2026-07-23:** Adopted a proposed source-grounded, two-stage fact-pipeline
+  design adapted from the Endgame implementation; see
+  [fact-pipeline design](docs/fact-pipeline-design.md).
+- **2026-07-23:** Chose PostgreSQL as the canonical experiment database and
+  Turbopuffer as its derived vector-search layer; see
+  [storage design](docs/storage-design.md).
+- **2026-07-23:** Implemented PostgreSQL migrations and MediaSum JSONL ingestion;
+  verified with 10 documents and 309 source turns in the local database.
 
 ## Initial study design
 
@@ -22,6 +32,11 @@ Compare fixed-token, turn-aware, and semantic text chunks with ISC fact cards.
 Keep embedding model, retriever, generator, and answer-context budget constant.
 Each fact card must retain its source document, speaker, turn range, and verbatim
 source span.
+
+The proposed fact-pipeline contract, provenance validation, enrichment pass, and
+ablation boundaries are documented in [fact-pipeline design](docs/fact-pipeline-design.md).
+The canonical-data, vector-projection, and index-synchronization boundaries are
+documented in [storage design](docs/storage-design.md).
 
 ## Resources
 
@@ -71,7 +86,21 @@ cp .env_example .env
 Set `FIREWORKS_API_KEY` and `TURBOPUFFER_API_KEY` in the local `.env` before
 running experiments. Do not put real keys in the README, scripts, or commits.
 
+## Local database
+
+Start the project-local PostgreSQL service, add the template `DATABASE_URL` to
+your local `.env`, then apply migrations and ingest a small working sample:
+
+```sh
+docker compose up -d postgres
+go run ./cmd/isc-rag migrate
+go run ./cmd/isc-rag ingest mediasum --split test --limit 100
+```
+
+The ingestion command reads MediaSum JSONL, upserts canonical documents, and
+stores every ordered speaker turn with source-character offsets.
+
 ## Project log
 
-Update this README when a resource, experimental decision, dataset freeze, or
-result changes.
+Update this README and [PLAN.md](PLAN.md) when a resource, experimental decision,
+dataset freeze, or result changes.

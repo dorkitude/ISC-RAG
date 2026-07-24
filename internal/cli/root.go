@@ -15,6 +15,8 @@ func Execute() {
 		SilenceUsage:  true,
 	}
 	root.AddCommand(newBootstrapCommand())
+	root.AddCommand(newMigrateCommand())
+	root.AddCommand(newIngestCommand())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

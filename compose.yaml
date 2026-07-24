@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: isc_rag
+      POSTGRES_USER: isc_rag
+      POSTGRES_PASSWORD: isc_rag_dev
+    ports:
+      - "54329:5432"
+    volumes:
+      - isc-rag-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isc_rag -d isc_rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  isc-rag-postgres:
