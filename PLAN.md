@@ -217,7 +217,9 @@ corpus is separately downloaded at `resources/mediasum/`.
 5. Add pgvector embedding writes and representation-specific similarity indexes.
    **Implemented:** `embed`, `index`, and `retrieve` use the database only.
 6. Create the question/evidence annotation format and annotate a pilot set.
-   **Format and importer implemented; human pilot annotation remains.**
+   **Implemented:** a frozen candidate canonical v1 set contains 100 deterministic,
+   single-turn MediaSum-test questions over 25 documents. It is imported with 100
+   gold-evidence rows; audit/review before treating it as final paper gold data.
 7. Run a pilot, inspect failure modes, freeze configuration, then execute the
    full comparison and ablations.
 
@@ -250,5 +252,5 @@ corpus is separately downloaded at `resources/mediasum/`.
   selection still needs to be frozen before the pilot.
 - pgvector embedding writes, model-specific HNSW indexing, single-query search,
   question/evidence import, retrieval evaluation, and optional answer persistence
-  are implemented. Independently authored pilot questions and full experiment
-  execution remain.
+  are implemented. The canonical v1 question set is present and database-validated;
+  independent audit, configuration freeze, and full experiment execution remain.

@@ -28,6 +28,9 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
 - **2026-07-23:** Implemented all four retrieval representations, Fireworks-backed
   fact extraction with exact quote validation, pgvector embeddings/search, and a
   question/evidence evaluation runner.
+- **2026-07-24:** Added and database-validated a 100-question canonical MediaSum
+  test set with exact turn evidence and deterministic reference answers; see
+  [canonical-question notes](examples/canonical-questions-v1.README.md).
 
 ## Initial study design
 
@@ -166,6 +169,11 @@ go run ./cmd/isc-rag evaluate run --representation facts --version v1 --question
 Run the same fixed question set and flags once for `fixed`, `turn`, `semantic`,
 and `facts`. Do not tune one representation on the held-out evaluation set.
 `examples/smoke-questions.jsonl` is only a wiring test, not a study label set.
+The actual canonical pilot set is
+`examples/canonical-questions-v1.jsonl`: 100 one-hop questions across 25 MediaSum
+test documents, each with one source turn and a verbatim deterministic answer.
+Its selection and normalization policy are in
+[canonical-question notes](examples/canonical-questions-v1.README.md).
 
 ## Project log
 
