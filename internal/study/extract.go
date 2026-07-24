@@ -82,6 +82,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 	if cfg.Approach == "quote-first" {
 		promptMaterial += "\n--- quote-selection stage ---\n" + quoteSelectionPrompt
 	}
+	effectivePrompt := promptMaterial
 	promptHash, rawHash := hash(promptMaterial), hash(rawOutput)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -89,7 +90,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 	}
 	defer tx.Rollback(ctx)
 	var runID string
-	err = tx.QueryRow(ctx, `INSERT INTO fact_rephrasing_study_runs(namespace,version,iteration,document_id,model,prompt_hash,config,raw_output,raw_output_hash) VALUES($1,$2,$3,$4,$5,$6,jsonb_build_object('max_facts',$7::int,'context','full transcript with numbered speaker turns','approach',$8::text,'temperature',0,'reasoning_effort','none'),$9,$10) ON CONFLICT(namespace,version,iteration,document_id) DO UPDATE SET model=EXCLUDED.model,prompt_hash=EXCLUDED.prompt_hash,config=EXCLUDED.config,raw_output=EXCLUDED.raw_output,raw_output_hash=EXCLUDED.raw_output_hash,created_at=now() RETURNING id`, cfg.Namespace, cfg.Version, cfg.Iteration, documentID, cfg.Model, promptHash, cfg.MaxFacts, cfg.Approach, rawOutput, rawHash).Scan(&runID)
+	err = tx.QueryRow(ctx, `INSERT INTO fact_rephrasing_study_runs(namespace,version,iteration,document_id,model,prompt_hash,config,raw_output,raw_output_hash,effective_prompt) VALUES($1,$2,$3,$4,$5,$6,jsonb_build_object('max_facts',$7::int,'context','full transcript with numbered speaker turns','approach',$8::text,'temperature',0,'reasoning_effort','none'),$9,$10,$11) ON CONFLICT(namespace,version,iteration,document_id) DO UPDATE SET model=EXCLUDED.model,prompt_hash=EXCLUDED.prompt_hash,config=EXCLUDED.config,raw_output=EXCLUDED.raw_output,raw_output_hash=EXCLUDED.raw_output_hash,effective_prompt=EXCLUDED.effective_prompt,created_at=now() RETURNING id`, cfg.Namespace, cfg.Version, cfg.Iteration, documentID, cfg.Model, promptHash, cfg.MaxFacts, cfg.Approach, rawOutput, rawHash, effectivePrompt).Scan(&runID)
 	if err != nil {
 		return result{}, err
 	}
@@ -105,7 +106,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 		return result{}, err
 	}
 	if cfg.OutputDir != "" {
-		if err = writeArtifacts(cfg.OutputDir, cfg, rawOutput, validated, promptHash, rawHash); err != nil {
+		if err = writeArtifacts(cfg.OutputDir, cfg, effectivePrompt, rawOutput, validated, promptHash, rawHash); err != nil {
 			return result{}, err
 		}
 	}
@@ -249,7 +250,7 @@ func hash(s string) string {
 	sum := sha256.Sum256([]byte(strings.TrimSpace(s)))
 	return hex.EncodeToString(sum[:])
 }
-func writeArtifacts(dir string, cfg Config, raw string, facts []fact, promptHash, rawHash string) error {
+func writeArtifacts(dir string, cfg Config, effectivePrompt, raw string, facts []fact, promptHash, rawHash string) error {
 	iteration := fmt.Sprintf("iteration-%02d", cfg.Iteration)
 	d := filepath.Join(dir, iteration)
 	if err := os.MkdirAll(d, 0755); err != nil {
@@ -261,6 +262,9 @@ func writeArtifacts(dir string, cfg Config, raw string, facts []fact, promptHash
 		return err
 	}
 	if err = os.WriteFile(filepath.Join(d, "validated-facts.json"), b, 0600); err != nil {
+		return err
+	}
+	if err = os.WriteFile(filepath.Join(d, "effective-prompt.txt"), []byte(effectivePrompt), 0600); err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Join(d, "raw-output.json"), []byte(raw), 0600)

@@ -38,6 +38,13 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   document. The account exposed V4 Pro rather than V4 Flash; the study is
   diagnostic only and did not promote a primary extraction configuration. See
   [the iteration report](docs/deepseek-fact-extraction-iterations.md).
+- **2026-07-24:** Compared the read-only the production system call-transcript implementation
+  with ISC-RAG and recorded evidence-backed, ranked transfer hypotheses. The
+  memo distinguishes observed code behavior from proposed experiments; see
+  [the production system fact-extraction hypotheses](docs/study2-fact-extraction-hypotheses.md).
+- **2026-07-24:** Ran a separate four-run manual DeepSeek prompt diagnostic. Its
+  result is that prompt length is not the leading failure hypothesis; see
+  [manual prompt tests](docs/deepseek-manual-prompt-tests.md).
 
 ## Initial study design
 
@@ -166,6 +173,13 @@ ignored artifacts. It defaults to the account-visible
 `accounts/fireworks/models/deepseek-v4-pro`; use `--model` to select an available
 future DeepSeek V4 Flash deployment. The full ten-iteration protocol and results
 are in [the study report](docs/deepseek-fact-extraction-iterations.md).
+
+The [manual prompt diagnostic](docs/deepseek-manual-prompt-tests.md) found that
+the earlier instruction files were only roughly 229--361 tokens beside an
+approximately 8.3k-token labelled transcript input. The
+[the production system comparison](docs/study2-fact-extraction-hypotheses.md) therefore ranks
+speaker-aware context construction, a richer extraction contract, and staged
+validation above prompt shortening as development hypotheses.
 
 ### Evaluation labels and run
 

@@ -261,3 +261,9 @@ corpus is separately downloaded at `resources/mediasum/`.
   clarity and document coverage remain unresolved. See
   `docs/deepseek-fact-extraction-iterations.md`; it did not alter primary facts
   or canonical labels.
+- A four-run manual diagnostic found no evidence that the short instruction
+  prompts were the principal problem relative to the much larger transcript
+  context. A read-only the production system comparison motivates a frozen development
+  factorial over extraction contract and speaker-aware chunk/carryover context;
+  see `docs/deepseek-manual-prompt-tests.md` and
+  `docs/study2-fact-extraction-hypotheses.md`.

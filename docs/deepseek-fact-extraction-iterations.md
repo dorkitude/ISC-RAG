@@ -27,7 +27,15 @@ auditable.
   because they derive from restricted MediaSum data. Each ignored iteration
   folder includes `raw-output.json`, `validated-facts.json`, and its short blind
   evaluation note. The database preserves the raw-output hash and exact quote
-  offsets.
+  offsets. **Post-study reproducibility correction:** the tracked prompt files
+  reproduce execution hashes for iterations 1--4 only. Iterations 5--10 have
+  correct execution prompt hashes below, but their current tracked prompt files
+  differ and no exact executed-prompt copy was retained. Do not represent those
+  six runs as exactly replayable from the repository; future runs must persist
+  the complete effective instruction prompt alongside its hash before calling the
+  provider. The follow-on `007_study_effective_prompt.sql` migration and CLI
+  implementation now do so for future runs, both in the isolated database table
+  and local ignored artifacts.
 
 ## Command
 
@@ -94,7 +102,10 @@ strongest exact-provenance/fidelity cells but still fails standalone clarity for
 
 All runs used `accounts/fireworks/models/deepseek-v4-pro`. Prompt/raw-output
 SHA-256 hashes and fact counts are below; the prompt hash includes the quote
-selection stage when present.
+selection stage when present. The hashes identify what was executed. As noted
+above, only the iteration 1--4 hashes currently match the corresponding tracked
+prompt files; iteration 5--10 prompt files are useful development records but
+not exact replay artifacts.
 
 | Iteration | Prompt SHA-256 | Raw output SHA-256 | Facts |
 | ---: | --- | --- | ---: |

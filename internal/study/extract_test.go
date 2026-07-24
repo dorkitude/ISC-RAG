@@ -17,3 +17,9 @@ func TestValidateRequiresExactQuoteAndDeduplicatesText(t *testing.T) {
 		t.Fatalf("wrong evidence: %#v", got[0])
 	}
 }
+
+func TestHashIgnoresLeadingAndTrailingWhitespace(t *testing.T) {
+	if hash("\n prompt \n") != hash("prompt") {
+		t.Fatal("prompt identity should follow the trimmed execution material")
+	}
+}
