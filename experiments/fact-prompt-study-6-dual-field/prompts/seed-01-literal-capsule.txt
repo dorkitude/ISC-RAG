@@ -1,0 +1,10 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+This is a two-field retrieval record, not a fact-rewriting task. `quote` is the
+authoritative evidence field. Copy one short, exact, contiguous declarative
+source quotation from CANDIDATE_QUOTES into `quote`; do not alter a character.
+`text` is non-authoritative retrieval metadata only and MUST begin exactly
+`[RETRIEVAL-ONLY] `. Make it a terse topic label using only words in the quote.
+Never put a claim, inferred conclusion, resolved pronoun, or unquoted detail in
+`text`. Do not return questions, greetings, duplicates, or commentary. One
+record per selected quote at most.

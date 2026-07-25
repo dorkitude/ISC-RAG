@@ -1,0 +1,12 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Refinement of the query-oriented dual-field seed after its first pass retained
+all selected evidence but undercovered the fixed ledger. Treat each distinct
+declarative CANDIDATE_QUOTES item as an evidence bundle: emit one record for
+every such item unless it is a genuine duplicate. `quote` is authoritative and
+must be copied exactly, unchanged, and contiguously from CANDIDATE_QUOTES.
+`text` is retrieval-only metadata, MUST start `[RETRIEVAL-ONLY] `, and must not
+be used as source evidence. Include the supplied speaker and a compact topic
+description; retain wording for uncertainty, negation, quantities, and time.
+Resolve a reference only when local context states it explicitly. Never turn a
+question or its premise into a claim, and never add an inferred conclusion.

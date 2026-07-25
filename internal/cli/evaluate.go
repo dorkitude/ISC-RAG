@@ -11,7 +11,66 @@ import (
 
 func newEvaluateCommand() *cobra.Command {
 	command := &cobra.Command{Use: "evaluate", Short: "Import evidence labels and run reproducible RAG evaluations"}
-	command.AddCommand(newQuestionImportCommand(), newEvaluationRunCommand())
+	command.AddCommand(newQuestionImportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand())
+	return command
+}
+func newDeterministicPilotQuestionCommand() *cobra.Command {
+	var projectDir, questionSplit, corpusSplit string
+	var documents, perDocument int
+	command := &cobra.Command{Use: "deterministic-pilot-questions", Short: "Create source-phrase retrieval stress-test probes", RunE: func(cmd *cobra.Command, args []string) error {
+		pool, err := openDatabase(projectDir)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		if err = storage.Migrate(cmd.Context(), pool); err != nil {
+			return err
+		}
+		report, err := evaluation.GenerateDeterministicPilotQuestions(cmd.Context(), pool, questionSplit, corpusSplit, documents, perDocument)
+		if err != nil {
+			return err
+		}
+		cmd.Printf("Generated %d deterministic lexical retrieval probes across %d documents.\n", report.Questions, report.Documents)
+		return nil
+	}}
+	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	command.Flags().StringVar(&questionSplit, "question-split", "pilot-100x100-v1", "Question-set namespace")
+	command.Flags().StringVar(&corpusSplit, "corpus-split", "test", "Source corpus split")
+	command.Flags().IntVar(&documents, "documents", 100, "Number of source documents")
+	command.Flags().IntVar(&perDocument, "per-document", 100, "Probes per source document")
+	return command
+}
+func newPilotQuestionCommand() *cobra.Command {
+	var projectDir, questionSplit, corpusSplit, model string
+	var documents, perDocument, batchSize, workers int
+	command := &cobra.Command{Use: "pilot-questions", Short: "Generate exact-evidence retrieval probes for a bounded pilot", RunE: func(cmd *cobra.Command, args []string) error {
+		pool, err := openDatabase(projectDir)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		if err = storage.Migrate(cmd.Context(), pool); err != nil {
+			return err
+		}
+		client, err := fireworks.NewFromEnv()
+		if err != nil {
+			return err
+		}
+		report, err := evaluation.GeneratePilotQuestions(cmd.Context(), pool, client, evaluation.PilotQuestionConfig{QuestionSplit: questionSplit, CorpusSplit: corpusSplit, Model: model, Documents: documents, PerDocument: perDocument, BatchSize: batchSize, Workers: workers})
+		if err != nil {
+			return err
+		}
+		cmd.Printf("Generated %d exact-evidence diagnostic question(s) across %d document(s); rejected %d invalid candidate(s).\n", report.Questions, report.Documents, report.Rejected)
+		return nil
+	}}
+	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	command.Flags().StringVar(&questionSplit, "question-split", "pilot-100x100-v1", "Question-set namespace")
+	command.Flags().StringVar(&corpusSplit, "corpus-split", "test", "Source corpus split")
+	command.Flags().StringVar(&model, "model", "accounts/fireworks/models/deepseek-v4-pro", "Fireworks question-generation model")
+	command.Flags().IntVar(&documents, "documents", 100, "Number of source documents")
+	command.Flags().IntVar(&perDocument, "per-document", 100, "Exact-evidence questions per source document")
+	command.Flags().IntVar(&batchSize, "batch-size", 10, "Questions per structured provider response")
+	command.Flags().IntVar(&workers, "workers", 1, "Concurrent document-generation workers")
 	return command
 }
 func newQuestionImportCommand() *cobra.Command {
@@ -38,7 +97,7 @@ func newQuestionImportCommand() *cobra.Command {
 }
 func newEvaluationRunCommand() *cobra.Command {
 	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel string
-	var topK int
+	var topK, embeddingBatchSize int
 	var generate bool
 	command := &cobra.Command{Use: "run", Short: "Retrieve every question and record evidence coverage (optionally generate answers)", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
@@ -53,7 +112,7 @@ func newEvaluationRunCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, Generate: generate})
+		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, Generate: generate})
 		if err != nil {
 			return err
 		}
@@ -72,6 +131,7 @@ func newEvaluationRunCommand() *cobra.Command {
 	command.Flags().StringVar(&embedModel, "embedding-model", "nomic-ai/nomic-embed-text-v1.5", "Fireworks embedding model")
 	command.Flags().StringVar(&generatorModel, "generator-model", "accounts/fireworks/models/gpt-oss-120b", "Fireworks answer model")
 	command.Flags().IntVar(&topK, "top-k", 5, "Number of retrieval units")
+	command.Flags().IntVar(&embeddingBatchSize, "embedding-batch-size", 32, "Questions per Fireworks embeddings request")
 	command.Flags().BoolVar(&generate, "generate", false, "Generate source-cited answers and store them")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if generate && generatorModel == "" {

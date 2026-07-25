@@ -7,17 +7,20 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/dorkitude/isc-rag/internal/fireworks"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const SystemPrompt = `You extract explicit, atomic facts from human dialogue. Return ONLY JSON shaped as {"facts":[{"text":"standalone atomic claim","quote":"exact supporting quote"}]}. Extract only claims explicitly stated in the provided text. Do not speculate, summarize conversational dynamics, infer unstated context, or write meta-claims. Preserve attribution through the supporting quote. Every fact must be understandable on its own. Quotes must be verbatim, concise, and under 240 characters.`
+const SystemPrompt = `You extract explicit, atomic facts from human dialogue. Return ONLY JSON shaped as {"facts":[{"text":"standalone atomic claim","quote":"exact supporting quote"}]}. Extract only claims explicitly stated in the provided text. Do not speculate, summarize conversational dynamics, infer unstated context, or write meta-claims. Every fact must be understandable on its own. The source supplies a deterministic speaker label for every turn: when an attribution is needed, use that speaker's supplied name exactly. Never write "the speaker", "the host", or "the guest" in fact text. Quotes must be verbatim, concise, and under 240 characters.`
+
+var genericSpeaker = regexp.MustCompile(`(?i)\bthe (speaker|host|guest)\b`)
 
 type Config struct {
 	Version, InputVersion, CorpusSplit, Model string
-	Limit, MaxFacts                           int
+	Limit, Offset, MaxFacts                   int
 }
 type extracted struct {
 	Facts []candidate `json:"facts"`
@@ -42,7 +45,7 @@ const enrichmentPrompt = `For each supplied immutable fact, return ONLY JSON sha
 
 type inputUnit struct {
 	ID, DocumentID, Text string
-	CharStart            int
+	CharStart, CharEnd   int
 }
 
 func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config) (int, error) {
@@ -52,7 +55,10 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	if cfg.MaxFacts <= 0 {
 		cfg.MaxFacts = 50
 	}
-	rows, err := pool.Query(ctx, `SELECT su.id,su.document_id,su.text,su.char_start FROM source_units su JOIN documents d ON d.id=su.document_id WHERE su.representation='fact-input' AND su.version=$1 AND su.document_id IN (SELECT id FROM documents WHERE corpus='mediasum' AND corpus_split=$2 ORDER BY external_id LIMIT $3) ORDER BY d.external_id,su.char_start`, cfg.InputVersion, cfg.CorpusSplit, limitSQL(cfg.Limit))
+	if cfg.Offset < 0 {
+		return 0, fmt.Errorf("offset must not be negative")
+	}
+	rows, err := pool.Query(ctx, `SELECT su.id,su.document_id,su.text,su.char_start,su.char_end FROM source_units su JOIN documents d ON d.id=su.document_id WHERE su.representation='fact-input' AND su.version=$1 AND su.document_id IN (SELECT id FROM documents WHERE corpus='mediasum' AND corpus_split=$2 ORDER BY external_id LIMIT $3 OFFSET $4) ORDER BY d.external_id,su.char_start`, cfg.InputVersion, cfg.CorpusSplit, limitSQL(cfg.Limit), cfg.Offset)
 	if err != nil {
 		return 0, err
 	}
@@ -61,7 +67,7 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	var order []string
 	for rows.Next() {
 		var u inputUnit
-		if err := rows.Scan(&u.ID, &u.DocumentID, &u.Text, &u.CharStart); err != nil {
+		if err := rows.Scan(&u.ID, &u.DocumentID, &u.Text, &u.CharStart, &u.CharEnd); err != nil {
 			return 0, err
 		}
 		if _, ok := byDoc[u.DocumentID]; !ok {
@@ -81,7 +87,12 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 		var all []candidate
 		for _, u := range byDoc[docID] {
 			maxFacts := min(cfg.MaxFacts, 50)
-			response, err := client.ChatJSON(ctx, cfg.Model, SystemPrompt, fmt.Sprintf("<TEXT>\n%s\n</TEXT>\nReturn at most %d facts.", u.Text, maxFacts), 2000)
+			labeled, err := labeledInput(ctx, pool, u)
+			if err != nil {
+				failRun(ctx, pool, runID)
+				return processed, err
+			}
+			response, err := client.ChatJSON(ctx, cfg.Model, SystemPrompt, fmt.Sprintf("<LABELED_TURNS>\n%s\n</LABELED_TURNS>\nReturn at most %d facts.", labeled, maxFacts), 2400)
 			if err != nil {
 				failRun(ctx, pool, runID)
 				return processed, fmt.Errorf("extract document %s: %w", docID, err)
@@ -101,6 +112,35 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	}
 	_, err = pool.Exec(ctx, `UPDATE pipeline_runs SET status='complete',completed_at=now() WHERE id=$1`, runID)
 	return processed, err
+}
+
+// labeledInput attaches only corpus-provided speaker metadata to the source
+// turns overlapping an extraction unit. It does not infer a role or name from
+// dialogue text, and preserves the source text used for quote validation.
+func labeledInput(ctx context.Context, pool *pgxpool.Pool, input inputUnit) (string, error) {
+	rows, err := pool.Query(ctx, `SELECT COALESCE(speaker_name,''),COALESCE(speaker_label,''),text FROM turns WHERE document_id=$1 AND char_end>$2 AND char_start<$3 ORDER BY ordinal`, input.DocumentID, input.CharStart, input.CharEnd)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var out strings.Builder
+	for rows.Next() {
+		var name, label, text string
+		if err := rows.Scan(&name, &label, &text); err != nil {
+			return "", err
+		}
+		if name == "" {
+			name = speakerName(label)
+		}
+		fmt.Fprintf(&out, "[SPEAKER: %s]\n%s\n", name, text)
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	if out.Len() == 0 {
+		return input.Text, nil
+	}
+	return strings.TrimSpace(out.String()), nil
 }
 
 func startRun(ctx context.Context, pool *pgxpool.Pool, cfg Config) (string, error) {
@@ -195,17 +235,21 @@ func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string,
 		if text == "" || quote == "" || len(quote) > 240 {
 			continue
 		}
-		key := hash(text)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
 		at := strings.Index(transcript, quote)
 		if at < 0 {
 			continue
 		}
 		start, end := at, at+len(quote)
 		first, last, speaker := evidenceTurns(turns, start, end)
+		text = replaceGenericSpeaker(text, speaker)
+		if genericSpeaker.MatchString(text) {
+			continue
+		}
+		key := hash(text)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		var factID string
 		err = tx.QueryRow(ctx, `INSERT INTO facts(document_id,text,content_hash,pipeline_run_id) VALUES ($1,$2,$3,$4) RETURNING id`, documentID, text, key, runID).Scan(&factID)
 		if err != nil {
@@ -219,6 +263,19 @@ func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string,
 		}
 	}
 	return tx.Commit(ctx)
+}
+
+func speakerName(label string) string {
+	name, _, _ := strings.Cut(strings.Join(strings.Fields(label), " "), ",")
+	return strings.TrimSpace(name)
+}
+
+func replaceGenericSpeaker(text, label string) string {
+	name := speakerName(label)
+	if name == "" {
+		return text
+	}
+	return genericSpeaker.ReplaceAllString(text, name)
 }
 
 type canonicalTurn struct {

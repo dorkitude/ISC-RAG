@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dorkitude/isc-rag/internal/embedding"
 	"github.com/dorkitude/isc-rag/internal/fireworks"
 	"github.com/dorkitude/isc-rag/internal/retrieval"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -83,7 +84,7 @@ func Import(ctx context.Context, pool *pgxpool.Pool, path string) (int, error) {
 
 type Config struct {
 	Representation, Version, QuestionSplit, CorpusSplit, EmbeddingModel, GeneratorModel string
-	TopK                                                                                int
+	TopK, EmbeddingBatchSize                                                            int
 	Generate                                                                            bool
 }
 type Metrics struct {
@@ -94,6 +95,9 @@ type Metrics struct {
 func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config) (Metrics, error) {
 	if cfg.TopK <= 0 {
 		cfg.TopK = 5
+	}
+	if cfg.EmbeddingBatchSize <= 0 {
+		cfg.EmbeddingBatchSize = 32
 	}
 	var runID string
 	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "top_k": cfg.TopK, "generate": cfg.Generate})
@@ -107,56 +111,76 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 		return metrics, fail(ctx, pool, runID, err)
 	}
 	defer rows.Close()
+	type questionRow struct{ id, text string }
+	var questions []questionRow
 	for rows.Next() {
 		var qid, question string
 		if err := rows.Scan(&qid, &question); err != nil {
 			return metrics, fail(ctx, pool, runID, err)
 		}
-		metrics.Questions++
-		results, err := retrieval.Search(ctx, pool, client, question, retrieval.Config{Representation: cfg.Representation, Version: cfg.Version, CorpusSplit: cfg.CorpusSplit, EmbeddingModel: cfg.EmbeddingModel, TopK: cfg.TopK})
-		if err != nil {
-			return metrics, fail(ctx, pool, runID, err)
-		}
-		tx, err := pool.Begin(ctx)
-		if err != nil {
-			return metrics, fail(ctx, pool, runID, err)
-		}
-		for rank, r := range results {
-			if _, err = tx.Exec(ctx, `INSERT INTO retrievals(experiment_run_id,question_id,source_unit_id,rank,score) VALUES($1,$2,$3,$4,$5)`, runID, qid, r.SourceUnitID, rank+1, r.Score); err != nil {
-				_ = tx.Rollback(ctx)
-				return metrics, fail(ctx, pool, runID, err)
-			}
-		}
-		var total, hits int
-		err = tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER (WHERE EXISTS (SELECT 1 FROM retrievals r JOIN source_units su ON su.id=r.source_unit_id WHERE r.experiment_run_id=$1 AND r.question_id=ge.question_id AND su.document_id=ge.document_id AND su.turn_start<=ge.turn_end AND su.turn_end>=ge.turn_start)) FROM gold_evidence ge WHERE ge.question_id=$2`, runID, qid).Scan(&total, &hits)
-		if err != nil {
-			_ = tx.Rollback(ctx)
-			return metrics, fail(ctx, pool, runID, err)
-		}
-		metrics.EvidenceTotal += total
-		metrics.EvidenceHits += hits
-		if hits > 0 {
-			metrics.QuestionsWithHit++
-		}
-		if cfg.Generate {
-			answer, err := generate(ctx, client, cfg.GeneratorModel, question, results)
-			if err != nil {
-				_ = tx.Rollback(ctx)
-				return metrics, fail(ctx, pool, runID, err)
-			}
-			citations, _ := json.Marshal(results)
-			_, err = tx.Exec(ctx, `INSERT INTO answers(experiment_run_id,question_id,text,citations) VALUES($1,$2,$3,$4)`, runID, qid, answer, citations)
-			if err != nil {
-				_ = tx.Rollback(ctx)
-				return metrics, fail(ctx, pool, runID, err)
-			}
-		}
-		if err = tx.Commit(ctx); err != nil {
-			return metrics, fail(ctx, pool, runID, err)
-		}
+		questions = append(questions, questionRow{id: qid, text: question})
 	}
 	if err := rows.Err(); err != nil {
 		return metrics, fail(ctx, pool, runID, err)
+	}
+	for start := 0; start < len(questions); start += cfg.EmbeddingBatchSize {
+		end := start + cfg.EmbeddingBatchSize
+		if end > len(questions) {
+			end = len(questions)
+		}
+		batch := questions[start:end]
+		texts := make([]string, len(batch))
+		for i, question := range batch {
+			texts[i] = question.text
+		}
+		vectors, err := client.Embed(ctx, cfg.EmbeddingModel, texts)
+		if err != nil {
+			return metrics, fail(ctx, pool, runID, err)
+		}
+		for i, question := range batch {
+			metrics.Questions++
+			results, err := retrieval.SearchVector(ctx, pool, embedding.VectorString(vectors[i]), retrieval.Config{Representation: cfg.Representation, Version: cfg.Version, CorpusSplit: cfg.CorpusSplit, EmbeddingModel: cfg.EmbeddingModel, TopK: cfg.TopK})
+			if err != nil {
+				return metrics, fail(ctx, pool, runID, err)
+			}
+			tx, err := pool.Begin(ctx)
+			if err != nil {
+				return metrics, fail(ctx, pool, runID, err)
+			}
+			for rank, r := range results {
+				if _, err = tx.Exec(ctx, `INSERT INTO retrievals(experiment_run_id,question_id,source_unit_id,rank,score) VALUES($1,$2,$3,$4,$5)`, runID, question.id, r.SourceUnitID, rank+1, r.Score); err != nil {
+					_ = tx.Rollback(ctx)
+					return metrics, fail(ctx, pool, runID, err)
+				}
+			}
+			var total, hits int
+			err = tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER (WHERE EXISTS (SELECT 1 FROM retrievals r JOIN source_units su ON su.id=r.source_unit_id WHERE r.experiment_run_id=$1 AND r.question_id=ge.question_id AND su.document_id=ge.document_id AND su.turn_start<=ge.turn_end AND su.turn_end>=ge.turn_start)) FROM gold_evidence ge WHERE ge.question_id=$2`, runID, question.id).Scan(&total, &hits)
+			if err != nil {
+				_ = tx.Rollback(ctx)
+				return metrics, fail(ctx, pool, runID, err)
+			}
+			metrics.EvidenceTotal += total
+			metrics.EvidenceHits += hits
+			if hits > 0 {
+				metrics.QuestionsWithHit++
+			}
+			if cfg.Generate {
+				answer, err := generate(ctx, client, cfg.GeneratorModel, question.text, results)
+				if err != nil {
+					_ = tx.Rollback(ctx)
+					return metrics, fail(ctx, pool, runID, err)
+				}
+				citations, _ := json.Marshal(results)
+				_, err = tx.Exec(ctx, `INSERT INTO answers(experiment_run_id,question_id,text,citations) VALUES($1,$2,$3,$4)`, runID, question.id, answer, citations)
+				if err != nil {
+					_ = tx.Rollback(ctx)
+					return metrics, fail(ctx, pool, runID, err)
+				}
+			}
+			if err = tx.Commit(ctx); err != nil {
+				return metrics, fail(ctx, pool, runID, err)
+			}
+		}
 	}
 	_, err = pool.Exec(ctx, `UPDATE experiment_runs SET status='complete',completed_at=now() WHERE id=$1`, runID)
 	return metrics, err
@@ -167,10 +191,20 @@ func generate(ctx context.Context, client *fireworks.Client, model, question str
 	}
 	var context strings.Builder
 	for i, r := range results {
-		fmt.Fprintf(&context, "[S%d document=%s turns=%d-%d]\n%s\n\n", i+1, r.ExternalID, r.TurnStart, r.TurnEnd, r.Text)
+		fmt.Fprintf(&context, "[S%d document=%s turns=%d-%d]\nFACT: %s\n", i+1, r.ExternalID, r.TurnStart, r.TurnEnd, r.Text)
+		if r.Quote != "" {
+			fmt.Fprintf(&context, "VERIFIED QUOTE%s: %s\n", namedSpeaker(r.SpeakerLabel), r.Quote)
+		}
+		context.WriteString("\n")
 	}
 	result, err := client.Chat(ctx, model, "Answer only from the supplied transcript sources. If the sources do not establish an answer, say so. Cite every substantive claim using the supplied [S#] labels.", fmt.Sprintf("Question: %s\n\nSources:\n%s", question, context.String()), 600)
 	return result.Text, err
+}
+func namedSpeaker(label string) string {
+	if label == "" {
+		return ""
+	}
+	return " (speaker: " + label + ")"
 }
 func fail(ctx context.Context, pool *pgxpool.Pool, id string, cause error) error {
 	_, _ = pool.Exec(ctx, `UPDATE experiment_runs SET status='failed',completed_at=now() WHERE id=$1`, id)

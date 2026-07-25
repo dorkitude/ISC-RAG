@@ -1,0 +1,11 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Create up to one dual-field retrieval capsule per candidate quote. `quote` is
+the authoritative field and must be an exact, unchanged, contiguous
+declarative quotation from CANDIDATE_QUOTES. `text` is deliberately
+non-authoritative and MUST start `[RETRIEVAL-ONLY] `. It should be a concise
+query-oriented description useful for finding the evidence, with an explicit
+speaker name where supplied. It may resolve only plainly stated local-context
+references. It must preserve all hedges, negation, numbers, and time bounds;
+it must not supply a conclusion, background fact, or question premise. Omit
+ambiguous or duplicate items.

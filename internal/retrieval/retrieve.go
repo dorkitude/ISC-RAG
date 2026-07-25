@@ -18,6 +18,7 @@ type Config struct {
 }
 type Result struct {
 	SourceUnitID, DocumentID, ExternalID, Text string
+	Quote, SpeakerLabel                        string
 	TurnStart, TurnEnd                         int
 	Score                                      float64
 }
@@ -43,7 +44,7 @@ func SearchVector(ctx context.Context, pool *pgxpool.Pool, vector string, cfg Co
 	if dimension < 1 || dimension > 16000 {
 		return nil, fmt.Errorf("invalid embedding dimension %d", dimension)
 	}
-	statement := fmt.Sprintf(`SELECT su.id,su.document_id,d.external_id,su.text,su.turn_start,su.turn_end,1-(e.vector::vector(%d) <=> $1::vector(%d)) AS score FROM embeddings e JOIN source_units su ON su.id=e.source_unit_id JOIN documents d ON d.id=su.document_id WHERE e.model=$2 AND su.representation=$3 AND su.version=$4 AND d.corpus_split=$5 ORDER BY e.vector::vector(%d) <=> $1::vector(%d) LIMIT $6`, dimension, dimension, dimension, dimension)
+	statement := fmt.Sprintf(`SELECT su.id,su.document_id,d.external_id,su.text,COALESCE(proof.quote,''),COALESCE(proof.speaker_label,''),su.turn_start,su.turn_end,1-(e.vector::vector(%d) <=> $1::vector(%d)) AS score FROM embeddings e JOIN source_units su ON su.id=e.source_unit_id JOIN documents d ON d.id=su.document_id LEFT JOIN LATERAL (SELECT fe.quote,fe.speaker_label FROM facts f JOIN fact_evidence fe ON fe.fact_id=f.id WHERE su.representation='facts' AND f.document_id=su.document_id AND f.content_hash=su.content_hash ORDER BY fe.id LIMIT 1) proof ON true WHERE e.model=$2 AND su.representation=$3 AND su.version=$4 AND d.corpus_split=$5 ORDER BY e.vector::vector(%d) <=> $1::vector(%d) LIMIT $6`, dimension, dimension, dimension, dimension)
 	rows, err := pool.Query(ctx, statement, vector, cfg.EmbeddingModel, cfg.Representation, cfg.Version, cfg.CorpusSplit, cfg.TopK)
 	if err != nil {
 		return nil, err
@@ -52,7 +53,7 @@ func SearchVector(ctx context.Context, pool *pgxpool.Pool, vector string, cfg Co
 	var out []Result
 	for rows.Next() {
 		var r Result
-		if err := rows.Scan(&r.SourceUnitID, &r.DocumentID, &r.ExternalID, &r.Text, &r.TurnStart, &r.TurnEnd, &r.Score); err != nil {
+		if err := rows.Scan(&r.SourceUnitID, &r.DocumentID, &r.ExternalID, &r.Text, &r.Quote, &r.SpeakerLabel, &r.TurnStart, &r.TurnEnd, &r.Score); err != nil {
 			return nil, err
 		}
 		out = append(out, r)

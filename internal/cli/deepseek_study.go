@@ -46,7 +46,7 @@ func newDeepSeekStudyCommand() *cobra.Command {
 	cmd.Flags().StringVar(&namespace, "namespace", "deepseek-fact-rephrasing", "Isolated study namespace")
 	cmd.Flags().StringVar(&version, "version", "v1", "Study version")
 	cmd.Flags().StringVar(&externalID, "external-id", "NPR-847", "One MediaSum document external ID")
-	cmd.Flags().StringVar(&model, "model", "accounts/fireworks/models/deepseek-v4-pro", "Fireworks model; override if DeepSeek V4 Flash is account-visible")
+	cmd.Flags().StringVar(&model, "model", "accounts/fireworks/models/deepseek-v4-flash", "Fireworks model for the isolated study")
 	cmd.Flags().StringVar(&promptFile, "prompt-file", filepath.Join("experiments", "deepseek-fact-rephrasing-v1", "prompts", "iteration-01.txt"), "Tracked prompt file")
 	cmd.Flags().StringVar(&outputDir, "output-dir", filepath.Join("artifacts", "deepseek-fact-rephrasing-v1"), "Ignored local raw-output directory")
 	cmd.Flags().StringVar(&approach, "approach", "direct", "direct or quote-first")

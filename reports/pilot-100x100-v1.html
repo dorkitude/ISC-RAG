@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ISC-RAG · 100×100 pilot</title>
+  <style>
+    :root { --ink:#172033; --muted:#64748b; --paper:#f8fafc; --line:#dbe3ee; --navy:#1f3a5f; --teal:#0f766e; --orange:#d97706; --red:#b45309; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:linear-gradient(145deg,#ecfeff 0%,var(--paper) 42%,#fff7ed 100%); font:16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    main { max-width:1080px; margin:auto; padding:48px 24px 72px; } .eyebrow { color:var(--teal); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:.76rem; } h1 { font:800 clamp(2.4rem,6vw,5.4rem)/.92 Georgia,serif; max-width:800px; margin:.3rem 0 1.2rem; letter-spacing:-.055em; } h2 { font:700 1.6rem/1.1 Georgia,serif; margin:2.7rem 0 .9rem; } .lede { max-width:780px; font-size:1.14rem; color:#3d4c61; } .tag { display:inline-block; margin:.8rem .5rem 0 0; padding:.28rem .65rem; border:1px solid var(--line); background:#fff; border-radius:999px; color:#40516a; font-size:.83rem; font-weight:650; }
+    .warning { margin-top:28px; border-left:5px solid var(--orange); background:#fffaf0; padding:18px 20px; border-radius:0 12px 12px 0; } .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:22px 0; } .card { background:rgba(255,255,255,.85); border:1px solid var(--line); border-radius:15px; padding:18px; box-shadow:0 9px 30px rgba(30,41,59,.05); } .card h3 { margin:0; font-size:.94rem; color:#526276; } .score { font-size:2.3rem; letter-spacing:-.07em; font-weight:800; margin:7px 0 3px; } .small { color:var(--muted); font-size:.86rem; } .bar { height:8px; border-radius:999px; background:#e6edf5; overflow:hidden; margin:12px 0 5px; }.fill { height:100%; background:linear-gradient(90deg,var(--navy),#4f7cac); }.facts .fill { background:linear-gradient(90deg,var(--orange),#f59e0b); }
+    table { width:100%; border-collapse:collapse; background:rgba(255,255,255,.82); border:1px solid var(--line); border-radius:14px; overflow:hidden; } th,td { text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); } th { color:#536276; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; background:#f1f5f9; } tr:last-child td { border:0; } td:first-child { font-weight:700; } .flow { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; align-items:stretch; } .step { border:1px solid var(--line); border-radius:12px; padding:15px; background:#fff; font-weight:700; } .step span { display:block; color:var(--muted); font-size:.8rem; font-weight:500; margin-top:5px; } .quote { border:1px solid #99d8d1; background:#f0fdfa; border-radius:12px; padding:18px; } code { background:#eaf0f6; padding:.14rem .35rem; border-radius:4px; } @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:1fr 1fr} } @media(max-width:440px){.grid,.flow{grid-template-columns:1fr} }
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">ISC-RAG / preliminary retrieval pilot</div>
+  <h1>More facts helped.<br>Coverage is still the bottleneck.</h1>
+  <p class="lede">A 100-document MediaSum test-split run compared fixed, turn-aware, semantic, and fact retrieval using the same Fireworks Nomic embedding model and 10,000 source-anchored probes. The fact result below is the higher-coverage rerun.</p>
+  <span class="tag">100 documents</span><span class="tag">10,000 probes</span><span class="tag">Fireworks Nomic 768d</span><span class="tag">Recall@5</span>
+  <div class="warning"><strong>This is a plumbing / lexical-stress pilot, not a paper result.</strong> Every probe is deterministically anchored to a phrase in a source turn. That makes the test reproducible and useful for storage/retrieval debugging, but not representative of natural information needs. The higher-coverage fact run uses 2.5k-byte inputs and at most five facts per input; it is still not a frozen paper fact configuration.</div>
+  <h2>Evidence recall@5</h2>
+  <div class="grid">
+    <section class="card"><h3>Turn-aware chunks</h3><div class="score">33.40%</div><div class="bar"><div class="fill" style="width:100%"></div></div><div class="small">3,340 / 10,000 gold turns hit</div></section>
+    <section class="card"><h3>Fixed chunks</h3><div class="score">33.21%</div><div class="bar"><div class="fill" style="width:99.4%"></div></div><div class="small">3,321 / 10,000 gold turns hit</div></section>
+    <section class="card"><h3>Semantic chunks</h3><div class="score">30.78%</div><div class="bar"><div class="fill" style="width:92.2%"></div></div><div class="small">3,078 / 10,000 gold turns hit</div></section>
+    <section class="card facts"><h3>Extracted facts · coverage v2</h3><div class="score">15.51%</div><div class="bar"><div class="fill" style="width:46.4%"></div></div><div class="small">1,551 / 10,000 gold turns hit · up from 11.69%</div></section>
+  </div>
+  <h2>What was stored?</h2>
+  <table><thead><tr><th>Representation</th><th>Units / vectors</th><th>Average text</th><th>Stored retrieval text</th></tr></thead><tbody>
+    <tr><td>Fixed chunks</td><td>369</td><td>3,345 chars</td><td>1,234,442 chars</td></tr>
+    <tr><td>Turn-aware chunks</td><td>351</td><td>3,210 chars</td><td>1,126,623 chars</td></tr>
+    <tr><td>Semantic chunks</td><td>446</td><td>2,526 chars</td><td>1,126,527 chars</td></tr>
+    <tr><td>Facts · coverage v2</td><td>2,353</td><td>86 chars</td><td><strong>202,313 chars</strong></td></tr>
+  </tbody></table>
+  <p class="small">The higher-coverage fact retrieval text is still about 5.6× smaller than the turn-aware baseline, while using more, much shorter vectors. All 2,353 fact rows have a non-empty exact supporting quote.</p>
+  <h2>Fact serving contract</h2>
+  <div class="flow"><div class="step">Embed<span>fact text only</span></div><div class="step">Retrieve<span>vector search over fact text</span></div><div class="step">Return<span>fact + verified quote + speaker</span></div><div class="step">Answer<span>cite the quote, not the rephrase</span></div></div>
+  <div class="quote"><strong>Live retrieval example</strong><br><br><code>FACT</code> The speaker lived and worked in New Orleans.<br><code>VERIFIED QUOTE · PHILLIPS</code> “And, Bishop, I — I lived and worked in that city.”</div>
+  <h2>Readout</h2>
+  <p>Increasing coverage from 629 to 2,353 facts raised fact recall by <strong>3.82 points</strong> (11.69% → 15.51%; a 32.7% relative increase). That confirms coverage matters, but facts still trail chunks because this lexical test rewards original wording and the extractor can still miss or rephrase relevant claims. The next useful experiment is an evidence-bundle fact representation evaluated on independently authored natural questions.</p>
+  <p class="small">Question namespace: <code>pilot-100x100-v1</code>. Fact run: <code>pilot-coverage-v2</code>. All conditions use the same 100 MediaSum test documents, Fireworks <code>nomic-ai/nomic-embed-text-v1.5</code>, cosine pgvector retrieval, and top-k = 5.</p>
+</main></body></html>

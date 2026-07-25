@@ -76,7 +76,8 @@ func persist(ctx context.Context, pool *pgxpool.Pool, record Record, split strin
 		start := offset
 		end := start + len(text)
 		speaker := record.Speakers[ordinal]
-		if _, err = tx.Exec(ctx, `INSERT INTO turns (document_id, ordinal, speaker_label, text, char_start, char_end) VALUES ($1,$2,$3,$4,$5,$6)`, documentID, ordinal, speaker, text, start, end); err != nil {
+		meta := ParseSpeakerLabel(speaker)
+		if _, err = tx.Exec(ctx, `INSERT INTO turns (document_id, ordinal, speaker_label, speaker_name, speaker_role, text, char_start, char_end) VALUES ($1,$2,$3,$4,NULLIF($5, ''),$6,$7,$8)`, documentID, ordinal, speaker, meta.Name, meta.Role, text, start, end); err != nil {
 			return err
 		}
 		offset = end + 1

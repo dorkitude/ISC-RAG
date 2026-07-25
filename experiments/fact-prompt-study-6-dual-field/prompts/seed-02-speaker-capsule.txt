@@ -1,0 +1,10 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Make dual-field evidence capsules. `quote` is the sole authoritative source
+evidence: copy one exact, contiguous declarative quotation from
+CANDIDATE_QUOTES unchanged. `text` is a non-authoritative retrieval
+description and MUST begin `[RETRIEVAL-ONLY] `. It may name the supplied
+speaker and give a compact retrieval label, but every factual word must occur
+in the supplied quote or its local context. Preserve uncertainty, negation, and
+reported-speech markers; do not turn a question into a fact. Do not emit a
+record when a useful label requires guessing. Do not duplicate records.

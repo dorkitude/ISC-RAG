@@ -1,0 +1,10 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+For each defensible item, keep `quote` as the authoritative field: copy a
+single exact contiguous declarative span from CANDIDATE_QUOTES, unchanged.
+`text` MUST begin `[RETRIEVAL-ONLY] ` and is explicitly not evidence or a fact.
+Its purpose is retrieval: resolve a pronoun or elliptical topic only when the
+resolution is explicit in the supplied local context, and retain speaker,
+negation, modality, quantities, and temporal limits. If that cannot be done
+without adding information, use a literal topic label instead or omit the item.
+Never use the description to support the record. No questions or duplicates.

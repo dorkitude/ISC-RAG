@@ -11,7 +11,7 @@ import (
 
 func newExtractCommand() *cobra.Command {
 	var projectDir, version, inputVersion, split, model string
-	var limit, maxFacts int
+	var limit, offset, maxFacts int
 	command := &cobra.Command{Use: "extract facts", Short: "Extract verified atomic facts from fact-input units", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
 		if err != nil {
@@ -25,7 +25,7 @@ func newExtractCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		count, err := facts.Extract(cmd.Context(), pool, client, facts.Config{Version: version, InputVersion: inputVersion, CorpusSplit: split, Model: model, Limit: limit, MaxFacts: maxFacts})
+		count, err := facts.Extract(cmd.Context(), pool, client, facts.Config{Version: version, InputVersion: inputVersion, CorpusSplit: split, Model: model, Limit: limit, Offset: offset, MaxFacts: maxFacts})
 		if err != nil {
 			return err
 		}
@@ -38,6 +38,7 @@ func newExtractCommand() *cobra.Command {
 	command.Flags().StringVar(&split, "split", "test", "Corpus split to process")
 	command.Flags().StringVar(&model, "model", "accounts/fireworks/models/gpt-oss-120b", "Fireworks extraction model")
 	command.Flags().IntVar(&limit, "limit", 0, "Maximum documents (0 means all)")
+	command.Flags().IntVar(&offset, "offset", 0, "Documents to skip after stable external-ID ordering")
 	command.Flags().IntVar(&maxFacts, "max-facts", 50, "Maximum facts per extraction input unit")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if model == "" {

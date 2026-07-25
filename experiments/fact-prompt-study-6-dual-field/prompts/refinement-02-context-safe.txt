@@ -1,0 +1,13 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Second refinement: preserve evidence coverage while making the non-authoritative
+retrieval field safe for use as a search hint. Emit one card for every distinct
+declarative CANDIDATE_QUOTES item. `quote` is the complete authoritative
+evidence bundle and must be copied verbatim, contiguously, and unchanged.
+`text` MUST begin `[RETRIEVAL-ONLY] ` and is never a fact: write a short
+speaker-attributed retrieval hint only. Do not resolve “that”, “it”, a pronoun,
+or an elliptical answer unless the same candidate quote itself supplies the
+referent; otherwise use the literal phrase. Preserve modal verbs, reported
+speech, negation, numbers, and time bounds exactly in meaning. Do not infer from
+a question, do not add background context, and do not duplicate an evidence
+bundle.

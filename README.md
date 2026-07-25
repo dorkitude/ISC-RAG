@@ -42,9 +42,66 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   with ISC-RAG and recorded evidence-backed, ranked transfer hypotheses. The
   memo distinguishes observed code behavior from proposed experiments; see
   [the production system fact-extraction hypotheses](docs/study2-fact-extraction-hypotheses.md).
+- **2026-07-24:** Added a production-mechanics review of the production system. Its main
+  conclusion is that provenance gating, speaker-aware context, domain metadata,
+  source recovery, and evidence-first serving—not a magic standalone-fact
+  prompt—likely explain production usefulness; see
+  [why the production system works in production](docs/study2-production-why-it-works.md).
+- **2026-07-24:** Added deterministic MediaSum speaker metadata. Corpus labels
+  such as `ALEX COHEN, host` are parsed into normalized name and role fields
+  while retaining the original label; no role is inferred from dialogue text.
+- **2026-07-24:** Stream-audited all 463,596 local MediaSum records (13,919,244
+  turns) through the ingestion schema and deterministic speaker parser. Every
+  required source field passed; titles and programme names are often absent but
+  remain optional document metadata.
+- **2026-07-24:** Ran the isolated `fw-smoke-v1` Fireworks embedding smoke test
+  over 50 MediaSum test documents: 174 fixed, 167 turn-aware, and 213 semantic
+  units received 768-dimensional `nomic-ai/nomic-embed-text-v1.5` vectors.
+  PostgreSQL persistence, model-specific HNSW creation, and a live Fireworks
+  query retrieval all succeeded. Fact units were intentionally excluded pending
+  a frozen fact configuration.
+- **2026-07-24:** Completed `pilot-100x100-v1`: 100 test documents, all four
+  retrieval representations, 10,000 deterministic source-phrase probes, and
+  Fireworks Nomic embeddings. Turn-aware/fixed/semantic recall@5 was
+  33.40%/33.21%/30.78%; the deliberately low-coverage fact baseline was 11.69%
+  but stored 19× less retrieval text and returned an exact quote with every
+  fact. This is a lexical plumbing pilot, not a paper result; see the local
+  [results page](reports/pilot-100x100-v1.html).
+- **2026-07-24:** Completed the controlled higher-coverage fact rerun
+  `pilot-coverage-v2`: reducing fact-input units to 2,500 bytes increased the
+  validated fact index from 629 to 2,353 facts and recall@5 from 11.69% to
+  15.51% on the unchanged 10,000-probe set. Every stored fact retained an exact
+  quote; the diagnostic lexical-pilot caveat remains.
+- **2026-07-24:** Re-extracted and embedded the 100-document fact pilot as
+  `pilot-named-v3`. Extraction now receives deterministic source speaker labels,
+  forbids generic speaker terms in fact text, and mechanically resolves any
+  residual generic attribution to the corpus-supplied name. The result is 2,405
+  named fact vectors with zero remaining `the speaker` phrases.
+- **2026-07-24:** Switched exploratory DeepSeek rephrasing defaults to Fireworks
+  DeepSeek V4 Flash and added a persisted, source-auditable two-pass trial
+  runner. It holds the isolated first-pass claims fixed and records each claim,
+  quote, turn span, and Flash rewrite under ignored `artifacts/`.
+- **2026-07-24:** Completed a five-document, 95-claim two-pass Flash check. The
+  conservative contextual-rewrite prompt completed all claims without provider
+  or JSON failures and outperformed its role-reference prompt variant on the
+  mechanical screens. It remains an unpromoted engineering candidate pending an
+  independent source-blind audit; see [the Flash study](docs/two-pass-flash-study.md).
 - **2026-07-24:** Ran a separate four-run manual DeepSeek prompt diagnostic. Its
   result is that prompt length is not the leading failure hypothesis; see
   [manual prompt tests](docs/deepseek-manual-prompt-tests.md).
+- **2026-07-24:** Started isolated, document-disjoint production-inspired Study #2
+  with a fixed source-only three-document claim ledger, distinct context/proof
+  concepts, and fresh blind audits. No candidate is yet promoted; see the
+  [Study #2 report](docs/fact-study-2.md).
+- **2026-07-24:** Ran three independent five-seed prompt studies, each followed
+  by two controlled hill-climb refinements. None promoted a standalone-fact
+  condition: role metadata improved attribution but not third-party
+  coreference; dialogue units exposed the need to distinguish an utterance
+  speaker from a quoted/asserted source; and dual-field prompts preserved exact
+  evidence but did not make retrieval descriptions trustworthy facts. See
+  [Study #4](docs/fact-prompt-study-4-role-metadata.md),
+  [Study #5](docs/fact-prompt-study-5-dialogue-units.md), and
+  [Study #6](docs/fact-prompt-study-6-dual-field.md).
 
 ## Initial study design
 
@@ -128,6 +185,27 @@ the portable default.
 The ingestion command reads MediaSum JSONL, upserts canonical documents, and
 stores every ordered speaker turn with source-character offsets.
 
+Parse the corpus-provided speaker labels for already-ingested turns with:
+
+```sh
+go run ./cmd/isc-rag annotate speaker-metadata
+```
+
+This extracts only explicit label suffixes (for example, `host` or
+`correspondent`) into structured fields; it does not infer roles from the
+conversation.
+
+Audit the full raw corpus without writing database records:
+
+```sh
+go run ./cmd/isc-rag audit mediasum --split all
+```
+
+The audit streams every JSONL record through the ingestion schema and the same
+deterministic speaker parser. It checks the ID and aligned utterance/speaker
+arrays required for canonical turns, non-empty source text and labels, UTF-8,
+and reports optional document-metadata completeness separately.
+
 ## Runnable experiment pipeline
 
 The default `v1` setup uses 4,000-byte units, 400-byte fixed-window overlap, and
@@ -169,10 +247,17 @@ API calls can incur provider costs.
 
 `deepseek-study` is separate from the primary `extract facts` pipeline: it writes
 raw provider output and exact-provenance facts to isolated study tables and local,
-ignored artifacts. It defaults to the account-visible
-`accounts/fireworks/models/deepseek-v4-pro`; use `--model` to select an available
-future DeepSeek V4 Flash deployment. The full ten-iteration protocol and results
-are in [the study report](docs/deepseek-fact-extraction-iterations.md).
+ignored artifacts. It defaults to
+`accounts/fireworks/models/deepseek-v4-flash`; use `--model` to run a controlled
+comparison with another available deployment. The full ten-iteration protocol and
+results are in [the study report](docs/deepseek-fact-extraction-iterations.md).
+
+`two-pass-test` is the narrower coreference experiment: it takes the frozen
+`pilot-named-v3` isolated claims as pass one, supplies each claim's exact quote
+and two labeled turns of local context, then asks Flash for a standalone rewrite.
+It writes a complete, ignored JSON artifact (default
+`artifacts/two-pass-rephrasing/flash-results.json`) so a sample can always be
+traced back to its source rather than being selected from terminal output.
 
 The [manual prompt diagnostic](docs/deepseek-manual-prompt-tests.md) found that
 the earlier instruction files were only roughly 229--361 tokens beside an
@@ -180,6 +265,20 @@ approximately 8.3k-token labelled transcript input. The
 [the production system comparison](docs/study2-fact-extraction-hypotheses.md) therefore ranks
 speaker-aware context construction, a richer extraction contract, and staged
 validation above prompt shortening as development hypotheses.
+
+The active successor is a structural C4 replication in the isolated
+production-inspired Study #2: a full-transcript antecedent-window generator is
+followed by exact provenance validation, a transcript-blind quote-span support
+audit, narrowly constrained repair, mechanical revalidation, and a fresh blind
+re-audit. Its frozen protocol and eventual evaluations are recorded in
+[the Study #2 report](docs/fact-study-2.md). It is not part of
+the primary extraction pipeline unless it clears the three-document gate and
+unchanged-config repeats.
+
+The next isolated Study #2 condition uses deterministic interviewer-question /
+answer source units. When a question supplies the scope needed to understand an
+answer, the resulting fact is an attributed dialogue act with both exact Q and
+A evidence stored; unpaired declarative turns remain their own source units.
 
 ### Evaluation labels and run
 

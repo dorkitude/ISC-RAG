@@ -17,6 +17,8 @@ func Execute() {
 	root.AddCommand(newBootstrapCommand())
 	root.AddCommand(newMigrateCommand())
 	root.AddCommand(newIngestCommand())
+	root.AddCommand(newAnnotateCommand())
+	root.AddCommand(newAuditCommand())
 	root.AddCommand(newBuildCommand())
 	root.AddCommand(newExtractCommand())
 	root.AddCommand(newEmbedCommand())
@@ -25,6 +27,9 @@ func Execute() {
 	root.AddCommand(newIndexCommand())
 	root.AddCommand(newEnrichCommand())
 	root.AddCommand(newDeepSeekStudyCommand())
+	root.AddCommand(newStudyTwoCommand())
+	root.AddCommand(newDualFieldCommand())
+	root.AddCommand(newTwoPassCommand())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

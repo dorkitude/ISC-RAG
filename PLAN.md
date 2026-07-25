@@ -179,6 +179,36 @@ canonical provenance. The CLI creates one partial HNSW pgvector index per
 embedding model and dimension after embeddings exist; it refuses mixed-dimension
 model rows.
 
+### Fireworks embedding execution plan
+
+Use the Fireworks OpenAI-compatible embeddings endpoint for every primary
+condition, initially with `nomic-ai/nomic-embed-text-v1.5`. The model identifier
+and returned dimension are persisted with every embedding; the model must be
+frozen before comparative evaluation. The same embedding model, normalization,
+batch size, and pgvector cosine operator apply to every representation.
+
+Scale in immutable representation versions: first run a 50-document test-split
+smoke version, verify Fireworks response cardinality/dimensions, PostgreSQL
+rows, and query retrieval, then freeze a pilot version and scale one
+representation at a time. The extraction-dependent fact condition is embedded
+only after its extraction configuration is frozen. At full scale, use
+representation/split-aware embedding partitions or partial indexes so an ANN
+search does not draw candidates from unrelated conditions.
+
+The completed `pilot-100x100-v1` is a storage/retrieval plumbing check, not a
+paper evaluation: it uses 100 MediaSum test documents and 100 deterministic
+source-phrase probes per document. Its fact extractor is capped at five facts
+per fact-input unit, so its 11.69% recall@5 measures a deliberately
+low-coverage baseline against lexical probes—not the central rephrasing
+hypothesis. The run verifies that fact embeddings use only fact text while RAG
+serving returns the verified quote and speaker alongside each fact.
+
+The controlled coverage follow-up `pilot-coverage-v2` reduced fact-input units
+from 10,000 to 2,500 bytes while retaining the five-facts-per-call cap and
+exact-quote gate. It produced 2,353 facts (versus 629) and improved the same
+lexical-probe recall@5 from 11.69% to 15.51%. This establishes coverage as a
+material factor, but does not validate the fact condition for the paper.
+
 ### Synchronization rule
 
 Persist a canonical extraction result, its evidence, and embedding in one
@@ -223,6 +253,51 @@ corpus is separately downloaded at `resources/mediasum/`.
 7. Run a pilot, inspect failure modes, freeze configuration, then execute the
    full comparison and ablations.
 
+### Fact-extraction development gate
+
+Study #2 is an isolated validation-only development study of production-inspired
+dialogue fact extraction. It cannot change primary facts or canonical labels.
+Its source-only ledger and blind-audit protocol are documented in
+`docs/fact-study-2.md`. Freeze a fact configuration only after
+three document-level replicates clear the predeclared support, attribution,
+qualifier, standalone, atomicity, duplicate, and coverage gates; do not treat
+exact quote location alone as a fidelity result.
+
+### Exploratory two-pass Flash check
+
+Before changing the primary fact configuration, run an isolated two-pass
+coreference check with `accounts/fireworks/models/deepseek-v4-flash`: hold the
+existing validated `pilot-named-v3` claims fixed as claim-isolation pass one;
+for pass two supply the exact quote and a deterministic +/- two-turn
+speaker-labeled context window; require a standalone rewrite that resolves only
+explicit antecedents. Persist every result with its document ID, source claim,
+quote, and turn span under ignored `artifacts/two-pass-rephrasing/`. Audit
+generic speaker language, unresolved pronouns, attribution, provenance, and
+unsupported additions on five documents before considering a controlled model or
+prompt comparison. This is an engineering study, not an experiment condition.
+**Completed:** the fixed five-document Flash check completed 95/95 rewrites for
+each of two prompts with no provider/JSON failures. The conservative prompt is
+the candidate for independent audit; the role-reference prompt did not improve
+the screening counts. See `docs/two-pass-flash-study.md`.
+
+### Active fact-study condition
+
+Run the isolated `fable-c4-sbar` structural replication on the three fixed
+Study #2 validation documents. Its frozen stages are antecedent-window
+generation, mechanical quote/window validation, transcript-blind span audit,
+repair restricted to re-anchor/re-cut/name-form/drop, mechanical revalidation,
+and a fresh blind re-audit. Keep the claim ledger out of every development
+stage; use it only in the independent final evaluator. Advance to two further
+unchanged-configuration repetitions only if the first pass clears every
+per-document gate.
+
+The active next jump is `dialogue-act-pairs`: build deterministic immediate
+interviewer-question/different-speaker-declarative-answer units, retain
+unpaired declarative turns, and store exact Q/A spans for attributed answer
+facts. Audit all three fixed documents without exposing the ledger to
+generation; iterate only through new source-representation or validation
+mechanisms if the fresh blind audits fail.
+
 ## 9. Open decisions
 
 - Freeze Fireworks models for extraction, enrichment, embedding, and answer generation.
@@ -254,8 +329,12 @@ corpus is separately downloaded at `resources/mediasum/`.
   question/evidence import, retrieval evaluation, and optional answer persistence
   are implemented. The canonical v1 question set is present and database-validated;
   independent audit, configuration freeze, and full experiment execution remain.
-- A separate ten-iteration DeepSeek V4 Pro (the account-visible closest model to
-  requested V4 Flash) fact-rephrasing study was completed on one MediaSum test
+- Fireworks embedding smoke version `fw-smoke-v1` has completed for 50 test
+  documents: 554 chunk-baseline vectors (174 fixed, 167 turn-aware, 213 semantic)
+  at 768 dimensions. Storage, HNSW indexing, and live query retrieval succeeded;
+  fact units remain unembedded until their representation is frozen.
+- A separate ten-iteration DeepSeek V4 Pro (then the account-visible closest
+  model to requested V4 Flash) fact-rephrasing study was completed on one MediaSum test
   document with a fresh evaluator and fixed rubric per iteration. It found no
   configuration ready to promote: provenance fidelity can be high, but standalone
   clarity and document coverage remain unresolved. See

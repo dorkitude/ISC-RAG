@@ -1,0 +1,10 @@
+Return ONLY valid JSON: {"facts":[{"text":"...","quote":"..."}]}.
+
+Generate evidence-led dual-field cards from CANDIDATE_QUOTES. `quote` is
+authoritative and must be copied verbatim as one contiguous declarative source
+span. `text` must start `[RETRIEVAL-ONLY] ` and is only a retrieval aid. Write
+one concise, source-attributed search description that preserves the source
+operator (for example said, officials said, might, probably, no, or not yet).
+Use local context only to resolve an explicit referent; never use it to add an
+unstated fact. If source operator or referent is unclear, omit the card. Do not
+emit questions, greetings, duplicate evidence, or a prose explanation.
