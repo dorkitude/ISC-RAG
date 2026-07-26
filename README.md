@@ -191,6 +191,16 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   representation from k=3 onward while using dramatically less answer context:
   68/100 at 366 mean tokens for facts versus 53–60/100 at 1,892–2,348 tokens
   for chunks. See the [full depth curve](docs/fact-development-top-k-depth-full-20260725.md).
+- **2026-07-25:** Ran the extended `frontier-xl` answer study: all four
+  representations at 2,048–16,384-token budgets with top-300 retrieval, 1,600
+  answers, and blind Kimi screens through the new reproducible
+  `evaluate judge` command. A mid-experiment spot-check caught pgvector's
+  `ef_search=40` cap silently limiting retrieval depth; the fix is in
+  `internal/retrieval` and the fact runs were regenerated budget-bound. Facts
+  at 2,048 tokens (92/100 correct) beat every chunk condition at every budget
+  including 16,384 (best chunk 75/100 at 7.3× the tokens), and fact accuracy
+  *declines* with larger budgets — compiled context has its own small-context
+  optimum. See [the frontier-XL record](docs/fact-development-frontier-xl-20260725.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).

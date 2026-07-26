@@ -45,7 +45,17 @@ func SearchVector(ctx context.Context, pool *pgxpool.Pool, vector string, cfg Co
 		return nil, fmt.Errorf("invalid embedding dimension %d", dimension)
 	}
 	statement := fmt.Sprintf(`SELECT su.id,su.document_id,d.external_id,su.text,COALESCE(proof.quote,''),COALESCE(proof.speaker_label,''),su.turn_start,su.turn_end,1-(e.vector::vector(%d) <=> $1::vector(%d)) AS score FROM embeddings e JOIN source_units su ON su.id=e.source_unit_id JOIN documents d ON d.id=su.document_id LEFT JOIN LATERAL (SELECT fe.quote,fe.speaker_label FROM facts f JOIN fact_evidence fe ON fe.fact_id=f.id WHERE su.representation='facts' AND f.document_id=su.document_id AND f.content_hash=su.content_hash ORDER BY fe.id LIMIT 1) proof ON true WHERE e.model=$2 AND su.representation=$3 AND su.version=$4 AND d.corpus_split=$5 ORDER BY e.vector::vector(%d) <=> $1::vector(%d) LIMIT $6`, dimension, dimension, dimension, dimension)
-	rows, err := pool.Query(ctx, statement, vector, cfg.EmbeddingModel, cfg.Representation, cfg.Version, cfg.CorpusSplit, cfg.TopK)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	// pgvector's HNSW scan returns at most hnsw.ef_search rows (default 40)
+	// regardless of LIMIT; raise it to the requested depth so top-k is honored.
+	if _, err = tx.Exec(ctx, fmt.Sprintf("SET LOCAL hnsw.ef_search = %d", clampEfSearch(cfg.TopK))); err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(ctx, statement, vector, cfg.EmbeddingModel, cfg.Representation, cfg.Version, cfg.CorpusSplit, cfg.TopK)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +68,23 @@ func SearchVector(ctx context.Context, pool *pgxpool.Pool, vector string, cfg Co
 		}
 		out = append(out, r)
 	}
-	return out, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	return out, tx.Commit(ctx)
+}
+
+// clampEfSearch bounds hnsw.ef_search to pgvector's accepted range [1, 1000]
+// while never lowering it beneath the default of 40.
+func clampEfSearch(topK int) int {
+	if topK < 40 {
+		return 40
+	}
+	if topK > 1000 {
+		return 1000
+	}
+	return topK
 }
 
 // EnsureHNSW creates the partial, model-specific index required for a dimensioned

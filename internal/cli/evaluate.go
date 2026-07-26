@@ -12,7 +12,7 @@ import (
 
 func newEvaluateCommand() *cobra.Command {
 	command := &cobra.Command{Use: "evaluate", Short: "Import evidence labels and run reproducible RAG evaluations"}
-	command.AddCommand(newQuestionImportCommand(), newQuestionExportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand(), newDepthSummaryCommand())
+	command.AddCommand(newQuestionImportCommand(), newQuestionExportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand(), newDepthSummaryCommand(), newJudgeCommand())
 	return command
 }
 func newDeterministicPilotQuestionCommand() *cobra.Command {
@@ -166,6 +166,41 @@ func newEvaluationRunCommand() *cobra.Command {
 		}
 		return nil
 	}
+	return command
+}
+
+func newJudgeCommand() *cobra.Command {
+	var projectDir, runs, judgeModel, correctnessKey, supportKey string
+	var rejudge bool
+	command := &cobra.Command{Use: "judge", Short: "Run blind correctness and source-support screens over stored generated answers", RunE: func(cmd *cobra.Command, args []string) error {
+		if strings.TrimSpace(runs) == "" {
+			return fmt.Errorf("--runs is required")
+		}
+		pool, err := openDatabase(projectDir)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		if err = storage.Migrate(cmd.Context(), pool); err != nil {
+			return err
+		}
+		client, err := fireworks.NewFromEnv()
+		if err != nil {
+			return err
+		}
+		metrics, err := evaluation.Judge(cmd.Context(), pool, client, evaluation.JudgeConfig{RunIDs: strings.Split(runs, ","), JudgeModel: judgeModel, CorrectnessKey: correctnessKey, SupportKey: supportKey, SkipExisting: !rejudge})
+		if err != nil {
+			return err
+		}
+		cmd.Printf("Judged %d/%d answers (%d already judged, skipped): %d correct, %d supported.\n", metrics.Judged, metrics.Answers, metrics.Skipped, metrics.Correct, metrics.Supported)
+		return nil
+	}}
+	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	command.Flags().StringVar(&runs, "runs", "", "Comma-separated experiment run UUIDs")
+	command.Flags().StringVar(&judgeModel, "judge-model", "accounts/fireworks/models/kimi-k2p6", "Fireworks judge model; must differ from the answer model for an independent screen")
+	command.Flags().StringVar(&correctnessKey, "correctness-key", "", "Usage key to store blind correctness verdicts (required)")
+	command.Flags().StringVar(&supportKey, "support-key", "", "Usage key to store blind source-support verdicts (required)")
+	command.Flags().BoolVar(&rejudge, "rejudge", false, "Re-judge answers that already hold verdicts under both keys")
 	return command
 }
 
