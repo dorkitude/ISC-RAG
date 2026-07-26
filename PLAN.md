@@ -88,6 +88,23 @@ Any fact without validated provenance is discarded.
 The extractor must not speculate, invent information, summarize conversational
 dynamics, or emit meta-claims. The enrichment model must not rewrite raw facts.
 
+### Current bounded development slice (2026-07-25)
+
+All active extraction, prompt development, question authoring, and agent
+evaluation are limited to the exact 100 MediaSum document IDs in
+`examples/fact-development-sample-100-20260725.txt`. The list is a deterministic
+random draw and is intentionally frozen. Do **not** expand the pipeline to the
+full corpus until this slice has acceptable claim coverage, quote fidelity, and
+retrieval behavior.
+
+The current extractor version, `turnwise-opinion-v1`, makes the first pass a
+high-recall per-turn claim harvest: it includes explicit factual assertions and
+explicit opinions, beliefs, judgments, preferences, intentions, predictions,
+and hypotheses. A second contextual pass makes retained claims standalone,
+resolves knowable antecedents, preserves attribution, and requires a validated
+quote inside the target turn. Retrieval embeds the standalone fact together with
+its verified quote. It is a development condition, not a paper result.
+
 ### Fact ablations
 
 These are not hidden preprocessing steps; report them separately:
@@ -279,6 +296,58 @@ prompt comparison. This is an engineering study, not an experiment condition.
 each of two prompts with no provider/JSON failures. The conservative prompt is
 the candidate for independent audit; the role-reference prompt did not improve
 the screening counts. See `docs/two-pass-flash-study.md`.
+
+### Evaluation-agent capability boundary
+
+Use a separately compiled, read-only `agent-toolbox-<condition>-rag` binary for
+each Q&A agent. It must expose only JSON `search`, with representation, version,
+split, and embedding model compiled into that binary; do not give experiment
+agents the general-purpose `isc-rag` CLI. The primary fixed/turn/semantic tools
+and explicitly labelled development-only pilot/fact tools are implemented. Do
+not treat a fact-serving development binary as a primary-condition tool until
+its configuration passes the independent fidelity gate. Database/API
+least-privilege credentials remain required for a hard security boundary.
+
+**Evaluation-label consequence:** a seeded 25-question candidate-label sample
+was exposed to models for the 50-loop agent-toolbox interface test. Those IDs
+are consumed for development/integration use and must be replaced before a
+primary held-out question set is frozen. See
+`docs/agent-toolbox-smoke-20260724.md`.
+
+**Development-agent result:** a separate 25-question local source-grounded set
+was constructed from only the ten currently indexed fixed-chunk pilot documents.
+On its first ten questions, constrained Flash and Kimi agent loops were usable,
+but the result is explicitly an integration/latency check rather than a
+representation comparison. See `docs/agent-toolbox-development-20260724.md`.
+
+**Rephrasing-mechanism development probe:** a separate, source-grounded
+15-question retrieval-only check now exercises the missing strata: five
+pronoun-resolution, five attribution, and five decontextualization questions
+over a locally matched CNN slice. At top-5, `facts/pilot-named-v3` covers
+13/15 gold spans and `fixed/pilot-100x100-v1` covers 10/15; both cover 4/5
+pronoun and 4/5 attribution items, while facts cover 5/5 versus chunks 2/5
+decontextualization items. This is development data, authored after source
+inspection, and chunks lack speaker labels in searchable text, so it is a
+mechanism check only—not a promoted result. See
+`docs/decontextualized-question-development-20260725.md`.
+
+**Fresh-session agent ledger:** `012_agent_evaluation.sql` persists every
+development Q&A attempt centrally: a parent run freezes prompt/configuration,
+then question × replicate attempts retain raw selections/answers, constrained
+tool output, normalized retrieval ranks, automatic evidence/citation/reference
+screens, and latency. The expanded diagnostic will use 75 newly authored
+development questions (25 per rephrasing stratum), ten fresh repetitions, both
+Flash and Kimi, and the locally matched fixed/fact capabilities: 3,000 sessions
+in total. The runnable procedure and SQL inspection query are in
+`docs/agent-evaluation-ledger.md`.
+
+**Current fact-development boundary:** all iterative extraction and question
+development is frozen to the deterministic 100-document list in
+`examples/fact-development-sample-100-20260725.txt`. The new first pass targets
+each canonical turn, harvests every explicit factual claim and expressed
+opinion, and uses preceding turns only as context; exact quotes must come from
+the target turn. Do not scale beyond this sample until source-claim coverage,
+fidelity, and retrieval results are acceptable.
 
 ### Active fact-study condition
 

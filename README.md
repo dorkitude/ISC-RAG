@@ -86,6 +86,94 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   or JSON failures and outperformed its role-reference prompt variant on the
   mechanical screens. It remains an unpromoted engineering candidate pending an
   independent source-blind audit; see [the Flash study](docs/two-pass-flash-study.md).
+- **2026-07-24:** Added `agent-toolbox`, a family of separately compiled,
+  read-only evaluation binaries. The primary fixed, turn-aware, and semantic
+  chunk conditions—and explicitly labelled development-only pilot/fact
+  conditions—each expose only a bounded JSON `search` operation for their fixed
+  representation; see [agent-toolbox](docs/agent-toolbox.md).
+- **2026-07-24:** Smoke-tested the fixed-chunk agent-toolbox loop with Fireworks
+  DeepSeek V4 Flash and Kimi K2.6. With each model's no-reasoning option, both
+  made valid constrained search calls and answered/cited two easy in-index
+  questions; this is an interface check, not a retrieval result. See
+  [agent-toolbox](docs/agent-toolbox.md).
+- **2026-07-24:** Ran 50 additional fixed-chunk agent-toolbox loops (25 shared
+  candidate questions per model) with DeepSeek V4 Flash and Kimi K2.6. Both
+  made 25/25 valid constrained calls and abstained for every unindexed gold
+  document. Only 3/25 sampled documents existed in the current ten-document
+  fixed-index pilot, so this is an interface/abstention check, not a retrieval
+  result; the exposed IDs are removed from future held-out use. See the
+  [50-loop record](docs/agent-toolbox-smoke-20260724.md).
+- **2026-07-24:** Ran a new source-grounded, fixed-index development check with
+  25 locally held questions from the ten indexed pilot documents. On the first
+  ten shared questions, Flash answered 7/9 scoreable completed items correctly
+  at 6.27 s median end-to-end latency; Kimi K2.6 answered 8/9 at 1.42 s. This
+  is an exploratory agent/tool integration result, not a representation result;
+  see the [development check](docs/agent-toolbox-development-20260724.md).
+- **2026-07-25:** Added a source-grounded, 15-question development retrieval
+  probe specifically for pronoun, attribution, and decontextualization
+  pressure. On the locally matched CNN slice, rephrased facts hit 13/15 gold
+  spans at top-5 versus 10/15 fixed chunks, with the observed difference
+  confined to decontextualization. It is not held out or a paper result; see
+  the [retrieval probe](docs/decontextualized-question-development-20260725.md).
+- **2026-07-25:** Added a PostgreSQL-backed fresh-session agent-evaluation
+  ledger. It records frozen prompts/configuration, raw completions, parsed tool
+  interactions, retrieval ranks, automatic screens, and latency for every
+  repeat; see [the ledger protocol](docs/agent-evaluation-ledger.md).
+- **2026-07-25:** Completed the expanded 3,000-session development agent
+  matrix after correcting an invalid fixed-index binary configuration. The
+  broader 75-question set favors pilot fixed chunks over the current named-fact
+  index on evidence coverage, reversing the earlier tiny retrieval-only probe.
+  This is diagnostic negative evidence, not a paper result; see the
+  [ledger and results](docs/agent-evaluation-ledger.md).
+- **2026-07-25:** Added and tested a fact-plus-verified-quote embedding
+  projection over all 2,405 pilot facts. It modestly improves fact retrieval
+  and citation coverage but remains behind fixed chunks; see the
+  [embedding ablation](docs/agent-evaluation-ledger.md).
+- **2026-07-25:** Froze a deterministic random 100-document MediaSum test
+  sample for all future fact-development work. Do not expand fact extraction,
+  question authoring, or agent testing beyond this list until its coverage and
+  retrieval behavior are satisfactory; see
+  [the sample list](examples/fact-development-sample-100-20260725.txt).
+- **2026-07-25:** Added a balanced, development-only 100-question set for that
+  frozen sample. Claude Fable authored one source-grounded candidate per
+  document; every cited turn range and raw supporting quote was verified in
+  Postgres. See the [authoring notes](experiments/fact-development-sample-100-20260725/authoring-notes.md).
+- **2026-07-25:** The next bounded fact condition is
+  `facts/turnwise-opinion-v1`: high-recall first-pass harvesting of explicit
+  assertions and opinions for every turn, followed by provenance-validated
+  contextual rewriting. Its dedicated agent-toolbox binary returns each fact
+  with its verified quote. Its matched control is
+  `fixed/fact-dev-sample-100-fixed-v1`, built from exactly the same 100
+  documents. Extraction and question authoring are limited to the frozen sample
+  above.
+- **2026-07-25:** Completed that frozen 100-document extraction (13,064
+  fact-plus-quote units), imported 100 Fable-authored and source-validated
+  development questions, and ran the first 240 fresh, capability-limited Q&A
+  sessions against the fact condition and its matched fixed-chunk control. The
+  small probe is diagnostic rather than a paper result; the fixed control still
+  leads Kimi on evidence/citation coverage. See the
+  [initial probe record](docs/fact-development-sample-100-initial-probe.md).
+  A follow-up direct retrieval check over all 100 original questions finds the
+  opposite aggregate retrieval result—facts 95/100 gold-hit@5 versus fixed
+  chunks 87/100—with the fact advantage concentrated in pronoun/coreference
+  and compact direct lookups. This identifies the agent/tool layer as the next
+  diagnostic target.
+- **2026-07-25:** A new, transcript-only Fable question for each of the same
+  100 frozen documents replicated the direct-retrieval lead: facts 82/100
+  versus fixed chunks 64/100 at top-1; 95/100 versus 88/100 at top-5. This is
+  still a same-document development replication, not answer accuracy or a
+  paper result; see the
+  [replication record](docs/fact-development-sample-100-question-replication.md).
+- **2026-07-26:** Ran the first answer-level token-budget pilot. Facts at a
+  512-character retrieval cap were 64/100 blind-judge correct versus 45/100
+  for fixed chunks at a 2,048-character cap, while using 50.4% fewer actual
+  answer-model tokens. This is promising same-document development evidence;
+  it still needs the other chunk controls, independent adjudication, and
+  untouched documents. See the
+  [answer/cost pilot](docs/fact-development-answer-cost-pilot-20260726.md).
+- **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
+  diagnostics in a preliminary abstract. It remains development evidence only;
+  see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).
 - **2026-07-24:** Ran a separate four-run manual DeepSeek prompt diagnostic. Its
   result is that prompt length is not the leading failure hypothesis; see
   [manual prompt tests](docs/deepseek-manual-prompt-tests.md).
@@ -242,6 +330,21 @@ of hiding a provider choice. The current account-visible default is Fireworks
 GPT-OSS 120B for extraction/generation; Nomic Embed Text v1.5 remains the
 embedding default. Confirm model availability on the account before a large run.
 API calls can incur provider costs.
+
+### Capability-limited Q&A tools
+
+Build the frozen evaluation-tool capabilities with:
+
+```sh
+./scripts/build-agent-toolboxes.sh
+```
+
+For example, `./bin/agent-toolbox-fixed-rag search --query '...'` can only search
+the fixed-chunk `v1` test index; it cannot switch to another representation,
+version, corpus split, or embedding model. The script includes both the primary
+chunk conditions and explicitly labelled development-only fact/pilot controls.
+The complete capability table and credential-boundary caveat are in
+[agent-toolbox](docs/agent-toolbox.md).
 
 ### Isolated DeepSeek rephrasing study
 
