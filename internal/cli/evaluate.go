@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dorkitude/isc-rag/internal/evaluation"
 	"github.com/dorkitude/isc-rag/internal/fireworks"
@@ -11,7 +12,7 @@ import (
 
 func newEvaluateCommand() *cobra.Command {
 	command := &cobra.Command{Use: "evaluate", Short: "Import evidence labels and run reproducible RAG evaluations"}
-	command.AddCommand(newQuestionImportCommand(), newQuestionExportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand())
+	command.AddCommand(newQuestionImportCommand(), newQuestionExportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand(), newDepthSummaryCommand())
 	return command
 }
 func newDeterministicPilotQuestionCommand() *cobra.Command {
@@ -114,7 +115,7 @@ func newQuestionExportCommand() *cobra.Command {
 	return command
 }
 func newEvaluationRunCommand() *cobra.Command {
-	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel string
+	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel, documentList, resumeRun string
 	var topK, embeddingBatchSize, contextChars, contextTokens int
 	var generate bool
 	command := &cobra.Command{Use: "run", Short: "Retrieve every question and record evidence coverage (optionally generate answers)", RunE: func(cmd *cobra.Command, args []string) error {
@@ -130,7 +131,11 @@ func newEvaluationRunCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, ContextChars: contextChars, ContextTokens: contextTokens, Generate: generate})
+		documents, err := readDocumentList(documentList)
+		if err != nil {
+			return err
+		}
+		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, ContextChars: contextChars, ContextTokens: contextTokens, DocumentExternalIDs: documents, ResumeRunID: resumeRun, Generate: generate})
 		if err != nil {
 			return err
 		}
@@ -145,6 +150,8 @@ func newEvaluationRunCommand() *cobra.Command {
 	command.Flags().StringVar(&representationName, "representation", "fixed", "Representation")
 	command.Flags().StringVar(&version, "version", "v1", "Representation version")
 	command.Flags().StringVar(&questionSplit, "question-split", "dev", "Question split")
+	command.Flags().StringVar(&documentList, "document-list", "", "Optional newline-delimited source document IDs; evaluates only their questions")
+	command.Flags().StringVar(&resumeRun, "resume-run", "", "Resume a failed matching run, preserving answers already stored")
 	command.Flags().StringVar(&corpusSplit, "corpus-split", "test", "Source corpus split")
 	command.Flags().StringVar(&embedModel, "embedding-model", "nomic-ai/nomic-embed-text-v1.5", "Fireworks embedding model")
 	command.Flags().StringVar(&generatorModel, "generator-model", "accounts/fireworks/models/gpt-oss-120b", "Fireworks answer model")
@@ -159,5 +166,65 @@ func newEvaluationRunCommand() *cobra.Command {
 		}
 		return nil
 	}
+	return command
+}
+
+func newDepthSummaryCommand() *cobra.Command {
+	var projectDir, runs, correctnessKey, supportKey string
+	command := &cobra.Command{Use: "depth-summary", Short: "Summarize answer success and minimum successful top-k across completed runs", RunE: func(cmd *cobra.Command, args []string) error {
+		if strings.TrimSpace(runs) == "" {
+			return fmt.Errorf("--runs is required")
+		}
+		pool, err := openDatabase(projectDir)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		if err = storage.Migrate(cmd.Context(), pool); err != nil {
+			return err
+		}
+		ids := strings.Split(runs, ",")
+		rows, err := pool.Query(cmd.Context(), `WITH runs AS (SELECT id,representation,(parameters->>'top_k')::int AS k FROM experiment_runs WHERE id=ANY($1::uuid[])), outcomes AS (SELECT r.representation,r.k,q.external_id,(a.usage->$2->>'verdict'='correct' AND a.usage->$3->>'verdict'='supported') AS success,(a.usage->>'total_tokens')::numeric AS total_tokens FROM answers a JOIN runs r ON r.id=a.experiment_run_id JOIN questions q ON q.id=a.question_id) SELECT representation,k,count(*) FILTER (WHERE success),count(*),round(avg(total_tokens),1) FROM outcomes GROUP BY 1,2 ORDER BY 1,2`, ids, correctnessKey, supportKey)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		cmd.Println("Answerable-and-supported by top-k (mean provider total tokens):")
+		for rows.Next() {
+			var representation string
+			var k, success, total int
+			var tokens float64
+			if err = rows.Scan(&representation, &k, &success, &total, &tokens); err != nil {
+				return err
+			}
+			cmd.Printf("  %s k=%d: %d/%d (mean total tokens %.1f)\n", representation, k, success, total, tokens)
+		}
+		if err = rows.Err(); err != nil {
+			return err
+		}
+		rows, err = pool.Query(cmd.Context(), `WITH runs AS (SELECT id,representation,(parameters->>'top_k')::int AS k FROM experiment_runs WHERE id=ANY($1::uuid[])), outcomes AS (SELECT r.representation,r.k,q.external_id,(a.usage->$2->>'verdict'='correct' AND a.usage->$3->>'verdict'='supported') AS success FROM answers a JOIN runs r ON r.id=a.experiment_run_id JOIN questions q ON q.id=a.question_id), first_success AS (SELECT representation,external_id,min(k) FILTER (WHERE success) AS minimum_k FROM outcomes GROUP BY 1,2) SELECT representation,external_id,minimum_k FROM first_success ORDER BY representation,external_id`, ids, correctnessKey, supportKey)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		cmd.Println("Minimum successful top-k per question (never means no correct, supported answer in supplied runs):")
+		for rows.Next() {
+			var representation, externalID string
+			var minimum *int
+			if err = rows.Scan(&representation, &externalID, &minimum); err != nil {
+				return err
+			}
+			value := "never"
+			if minimum != nil {
+				value = fmt.Sprintf("%d", *minimum)
+			}
+			cmd.Printf("  %s %s: %s\n", representation, externalID, value)
+		}
+		return rows.Err()
+	}}
+	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	command.Flags().StringVar(&runs, "runs", "", "Comma-separated experiment run UUIDs")
+	command.Flags().StringVar(&correctnessKey, "correctness-key", "judge_kimi_depth_v1", "Usage key containing blind correctness verdicts")
+	command.Flags().StringVar(&supportKey, "support-key", "source_support_kimi_depth_v1", "Usage key containing blind source-support verdicts")
 	return command
 }

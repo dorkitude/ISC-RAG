@@ -139,6 +139,8 @@ func Export(ctx context.Context, pool *pgxpool.Pool, split, path string) (int, e
 type Config struct {
 	Representation, Version, QuestionSplit, CorpusSplit, EmbeddingModel, GeneratorModel string
 	TopK, EmbeddingBatchSize, ContextChars, ContextTokens                               int
+	DocumentExternalIDs                                                                 []string
+	ResumeRunID                                                                         string
 	Generate                                                                            bool
 }
 type Metrics struct {
@@ -157,13 +159,39 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 	if cfg.ContextChars > 0 && cfg.ContextTokens > 0 {
 		return Metrics{}, fmt.Errorf("context character and token budgets are mutually exclusive")
 	}
-	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "top_k": cfg.TopK, "context_char_budget": cfg.ContextChars, "context_token_budget": cfg.ContextTokens, "context_tokenizer": tokenEncodingName(cfg.ContextTokens), "generate": cfg.Generate})
-	err := pool.QueryRow(ctx, `INSERT INTO experiment_runs(kind,representation,representation_version,embedding_model,generator_model,parameters) VALUES('retrieval',$1,$2,$3,$4,$5) RETURNING id`, cfg.Representation, cfg.Version, cfg.EmbeddingModel, nullString(cfg.GeneratorModel), parameters).Scan(&runID)
-	if err != nil {
-		return Metrics{}, err
+	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "document_external_ids": cfg.DocumentExternalIDs, "top_k": cfg.TopK, "context_char_budget": cfg.ContextChars, "context_token_budget": cfg.ContextTokens, "context_tokenizer": tokenEncodingName(cfg.ContextTokens), "generate": cfg.Generate})
+	if cfg.ResumeRunID == "" {
+		err := pool.QueryRow(ctx, `INSERT INTO experiment_runs(kind,representation,representation_version,embedding_model,generator_model,parameters) VALUES('retrieval',$1,$2,$3,$4,$5) RETURNING id`, cfg.Representation, cfg.Version, cfg.EmbeddingModel, nullString(cfg.GeneratorModel), parameters).Scan(&runID)
+		if err != nil {
+			return Metrics{}, err
+		}
+	} else {
+		runID = cfg.ResumeRunID
+		var matches bool
+		err := pool.QueryRow(ctx, `SELECT representation=$2 AND representation_version=$3 AND embedding_model=$4 AND COALESCE(generator_model,'')=COALESCE($5,'') AND parameters=$6::jsonb FROM experiment_runs WHERE id=$1`, runID, cfg.Representation, cfg.Version, cfg.EmbeddingModel, nullString(cfg.GeneratorModel), string(parameters)).Scan(&matches)
+		if err != nil {
+			return Metrics{}, fmt.Errorf("resume run %s: %w", runID, err)
+		}
+		if !matches {
+			return Metrics{}, fmt.Errorf("resume run %s does not match this evaluation configuration", runID)
+		}
+		if _, err = pool.Exec(ctx, `UPDATE experiment_runs SET status='running',completed_at=NULL WHERE id=$1`, runID); err != nil {
+			return Metrics{}, err
+		}
 	}
 	metrics := Metrics{RunID: runID}
-	rows, err := pool.Query(ctx, `SELECT id,text FROM questions WHERE corpus_split=$1 ORDER BY external_id`, cfg.QuestionSplit)
+	questionSQL := `SELECT q.id,q.text FROM questions q WHERE q.corpus_split=$1`
+	args := []any{cfg.QuestionSplit}
+	if len(cfg.DocumentExternalIDs) > 0 {
+		questionSQL += ` AND EXISTS (SELECT 1 FROM gold_evidence ge JOIN documents d ON d.id=ge.document_id WHERE ge.question_id=q.id AND d.external_id=ANY($2))`
+		args = append(args, cfg.DocumentExternalIDs)
+	}
+	if cfg.ResumeRunID != "" && cfg.Generate {
+		questionSQL += fmt.Sprintf(` AND NOT EXISTS (SELECT 1 FROM answers a WHERE a.experiment_run_id=$%d AND a.question_id=q.id)`, len(args)+1)
+		args = append(args, runID)
+	}
+	questionSQL += ` ORDER BY q.external_id`
+	rows, err := pool.Query(ctx, questionSQL, args...)
 	if err != nil {
 		return metrics, fail(ctx, pool, runID, err)
 	}

@@ -120,26 +120,62 @@ func (c *Client) request(ctx context.Context, path string, payload any, destinat
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
-	if err != nil {
-		return err
+	var last error
+	for attempt := 0; attempt < 3; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		res, err := c.http.Do(req)
+		if err != nil {
+			last = err
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if err = retryPause(ctx, attempt); err != nil {
+				return err
+			}
+			continue
+		}
+		raw, readErr := io.ReadAll(io.LimitReader(res.Body, 10<<20))
+		_ = res.Body.Close()
+		if readErr != nil {
+			last = readErr
+			if err = retryPause(ctx, attempt); err != nil {
+				return err
+			}
+			continue
+		}
+		if res.StatusCode < 200 || res.StatusCode >= 300 {
+			last = fmt.Errorf("Fireworks %s: %s", res.Status, strings.TrimSpace(string(raw)))
+			if res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500 {
+				if err = retryPause(ctx, attempt); err != nil {
+					return err
+				}
+				continue
+			}
+			return last
+		}
+		if err = json.Unmarshal(raw, destination); err != nil {
+			return fmt.Errorf("decode Fireworks response: %w", err)
+		}
+		return nil
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-	res, err := c.http.Do(req)
-	if err != nil {
-		return err
+	return last
+}
+
+func retryPause(ctx context.Context, attempt int) error {
+	if attempt >= 2 {
+		return nil
 	}
-	defer res.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(res.Body, 10<<20))
-	if err != nil {
-		return err
+	timer := time.NewTimer(time.Duration(attempt+1) * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("Fireworks %s: %s", res.Status, strings.TrimSpace(string(raw)))
-	}
-	if err := json.Unmarshal(raw, destination); err != nil {
-		return fmt.Errorf("decode Fireworks response: %w", err)
-	}
-	return nil
 }

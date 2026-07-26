@@ -1,0 +1,7 @@
+# One frozen-sample document per question family for the top-k depth pilot.
+# Questions: fact-dev100x-001 through fact-dev100x-005.
+CNN-2402
+CNN-58201
+CNN-203177
+CNN-246044
+CNN-185581

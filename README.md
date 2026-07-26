@@ -179,6 +179,18 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   correct versus 45–46/100 controls at similar cost. A blinded 80-item human
   calibration worksheet is ready, but no human labels have yet been collected.
   See the [frontier record](docs/fact-development-answer-frontier-20260725.md).
+- **2026-07-25:** Added a reproducible top-k depth-pilot path to the CLI and
+  ran it on five frozen documents at k=1/3/5/10/20/30 across all four
+  representations. It confirms that minimum successful k must be paired with
+  actual token use: chunks can succeed at lower k but cost several times more
+  context per result. See the
+  [depth-pilot record](docs/fact-development-top-k-depth-pilot-20260725.md).
+- **2026-07-25:** Scaled the top-k depth curve to all 100 frozen development
+  questions at k=1/3/5/10/20/30, with DeepSeek Flash both answering and
+  evaluating correctness/source support as requested. Facts lead every
+  representation from k=3 onward while using dramatically less answer context:
+  68/100 at 366 mean tokens for facts versus 53–60/100 at 1,892–2,348 tokens
+  for chunks. See the [full depth curve](docs/fact-development-top-k-depth-full-20260725.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).

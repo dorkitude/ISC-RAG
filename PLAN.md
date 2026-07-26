@@ -105,6 +105,21 @@ resolves knowable antecedents, preserves attribution, and requires a validated
 quote inside the target turn. Retrieval embeds the standalone fact together with
 its verified quote. It is a development condition, not a paper result.
 
+### Current answer-frontier evidence (2026-07-25)
+
+The frozen-sample development matrix now compares all four representations at
+256, 512, 1,024, and 2,048 estimated context-token budgets, with the same
+embedding, pgvector search, answer model, structured citation protocol, and
+question set. Facts lead the three chunk controls at every tested budget in the
+current blind Kimi screen; the full run ledger, provider-reported token use,
+and cautions are in
+`docs/fact-development-answer-frontier-20260725.md`.
+
+This establishes the next development gate, not a final claim: independently
+human-calibrate the 80-item blinded worksheet, then freeze the protocol before
+opening a document-disjoint test. Do not use the frozen-sample values as the
+headline paper result or calculate a general extraction-cost break-even yet.
+
 ### Fact ablations
 
 These are not hidden preprocessing steps; report them separately:
