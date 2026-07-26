@@ -194,6 +194,42 @@ deterministically evaluable answers.
     should therefore make exact evidence overlap and deterministic answer match
     primary, and use LLM judging as sensitivity analysis only.
 
+### Contextual chunking and proposition successors (added 2026-07-25)
+
+26. Anthropic (2024). [*Introducing Contextual Retrieval*](https://www.anthropic.com/engineering/contextual-retrieval). Engineering blog post.
+    Prepends 50–100 tokens of LLM-generated situating context to each chunk
+    before embedding and BM25 indexing, cutting top-20 retrieval failures by
+    49%. Ingest-time semantic work, and therefore a partial form of ISC — but
+    the retrieval unit remains a raw chunk that grows larger, and the generated
+    context is not validated against the source. It compiles the pointer, not
+    the read-time payload.
+
+27. Nan Zhang et al. (2024). [*SiReRAG: Indexing Similar and Related Information for Multihop Reasoning*](https://arxiv.org/abs/2412.06206). ICLR 2025.
+    Extracts propositions and entities, grouping propositions by shared
+    entities into a relatedness tree alongside a similarity tree. Propositions
+    organize multihop retrieval structure; there is no source-span validation
+    and no read-budget-controlled answer evaluation.
+
+28. Jingjin Wang et al. (2025). [*PropRAG: Guiding Retrieval with Beam Search over Proposition Paths*](https://aclanthology.org/2025.emnlp-main.317/). EMNLP.
+    Uses contextually rich propositions as nodes and beam search over
+    proposition paths to build multi-hop reasoning chains. Like ISC-RAG it uses
+    a prompted large model for extraction rather than a distilled one, but the
+    propositions serve reasoning-path discovery, not compiled, provenance-gated
+    read-time context.
+
+29. Yanning Hou et al. (2026). [*AtomicRAG: Atom–Entity Graphs for Retrieval-Augmented Generation*](https://arxiv.org/abs/2604.20844). arXiv preprint.
+    Replaces text chunks with "knowledge atoms" — self-contained factual
+    units — in an atom–entity graph, arguing that chunks rigidly group multiple
+    atomic facts together. The closest recent descendant of Dense X; still
+    Wikipedia-style benchmarks, no exact-quote validation, no dialogue.
+
+30. Krittin Pachtrachai et al. (2026). [*From Transcripts to AI Agents: Knowledge Extraction, RAG Integration, and Robust Evaluation of Conversational AI Assistants*](https://arxiv.org/abs/2602.15859). arXiv preprint.
+    The closest domain neighbor: extracts structured knowledge from real call
+    transcripts as the sole RAG grounding source, evaluated with a
+    transcript-grounded user simulator. An industrial end-to-end system paper;
+    it does not run a controlled representation comparison or enforce
+    quote-level provenance.
+
 ## Directly relevant people and groups to follow
 
 This is a relevance list, **not a citation-count or leadership ranking**. The
@@ -234,9 +270,10 @@ proposal or paper.
 
 ## Quality report and open uncertainties
 
-- **Verified references:** 25 total; **24/25 (96%)** are 2020 or later;
-  **3/25 (12%)** are explicitly marked arXiv preprints; **0** have an unverified
-  URL in this document.
+- **Verified references:** 30 total; **29/30 (97%)** are 2020 or later;
+  **5/30 (17%)** are explicitly marked arXiv preprints and **1/30** is an
+  industry engineering blog post; **0** have an unverified URL in this
+  document. Entries 26–30 were landing-page verified on 2026-07-25.
 - **Strongest nearest work:** Dense X Retrieval. The paper should cite it early,
   explain the common proposition idea, and make the different corpus,
   provenance contract, baselines, and evaluation explicit.
