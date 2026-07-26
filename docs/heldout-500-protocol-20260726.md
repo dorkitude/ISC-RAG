@@ -43,8 +43,14 @@ Identical to the frozen-100 development pipeline:
   fact inputs).
 - **Fact extraction:** `extract facts --version heldout500-turnwise-opinion-v1
   --input-version heldout500-v1 --document-list … --workers 8` with the
-  unchanged high-recall claim-harvester prompt and default extraction model
-  (`gpt-oss-120b`), exact-quote validation gate unchanged.
+  unchanged high-recall claim-harvester prompt and
+  `accounts/fireworks/models/deepseek-v4-flash` as the extraction model,
+  exact-quote validation gate unchanged. (Model determination: the frozen-100
+  invocation was not recorded, but the extractor's no-reasoning request is
+  rejected outright by the CLI-default `gpt-oss-120b` — observed as a 400 on
+  this run's first call — so the development extraction necessarily used an
+  override, and Flash is the project's established no-reasoning model. The
+  held-out run records the model explicitly to close this gap.)
 - **Embeddings:** `nomic-ai/nomic-embed-text-v1.5` for all four
   representations, unchanged.
 - **Questions:** one per document (500 total; 100 per question type), authored
