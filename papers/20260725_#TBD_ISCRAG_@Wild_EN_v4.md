@@ -69,17 +69,16 @@ Retrieval-augmented generation (RAG) systems for dialogue do not yet realize thi
 
 In this paper we present **ISC-RAG** (Ingest-time Semantic Compilation for RAG). ISC-RAG extracts high-recall factual and opinion claims from dialogue transcripts, discards any claim whose exact supporting quotation cannot be found verbatim in the source, attaches speaker attribution and turn-span provenance to every surviving claim, and rewrites claims so that resolvable pronouns and local references name their antecedents. The compiled fact — claim plus verified quote — is the retrieval payload the answer model reads.
 
-A real example from our corpus makes the contrast concrete. In a CNN segment, the anchor pivots mid-interview:
+A real example from our corpus makes the contrast concrete. In a CNN segment on Amazon's growth, a retail analyst assesses the traditional chains:
 
-> "…I do want to ask you about a Missouri Democratic senator, Senator Maria Chappelle Nadal, who wrote, I hope Trump is assassinated. Here are some people who now — by the way, she ultimately removed that tweet. There are some people who say that this state senator should step down…" *(BERMAN, turn 10)*
+> "…Walmart, Target, the big box retailers are still really well-run companies but they are behind. They're behind Amazon. Amazon is much further along in the online retail space. I think they can catch up and they still do have certain advantages…" *(DUBAY, turn 8)*
 
-A fixed chunk containing this sentence is a 2,880-character window spanning turns 7–14: the tweet discussion is embedded between an exchange about Confederate statues and the congressman's reaction, and the claim's subject appears as "she." A turn-aware chunk keeps whole turns and a semantic chunk breaks near a topic shift, but both likewise return raw multi-turn transcript in which the answer model must locate the claim and resolve its pronoun. ISC-RAG instead compiles turn 10 into separate fact-plus-quote units, one per claim:
+A fixed chunk containing this sentence is a 3,987-character window spanning turns 0–11: the claim sits among revenue comparisons ("$67 billion compared to $10 billion"), anchor questions, and hedged analysis, and both the claim's speaker and its subject appear only as pronouns — "I" and "they." A turn-aware chunk keeps whole turns and a semantic chunk breaks near a topic shift, but both likewise return raw multi-turn transcript in which the answer model must locate the claim and resolve its references. ISC-RAG instead compiles the turn into fact-plus-quote units, one per claim:
 
-> **Fact:** Senator Maria Chappelle Nadal wrote "I hope Trump is assassinated."
-> **Fact:** Senator Maria Chappelle Nadal ultimately removed the tweet.
-> **Supporting quote:** "she ultimately removed that tweet" — BERMAN, turn 10
+> **Fact:** Dubay thinks big box retailers can catch up to Amazon.
+> **Supporting quote:** "I think they can catch up" — DUBAY, turn 8
 
-A question like "Did Chappelle-Nadal take the tweet down?" now matches a ~20-token unit whose subject is named and whose evidence is a verbatim, checkable span — instead of a ~700-token window in which the fact is one clause of an aside.
+Both pronouns are resolved at ingest — "I" to the named speaker and "they" to the retailers under discussion — with the verbatim source span retained as checkable evidence. A question like "Who thought traditional retailers could catch up to Amazon?" now matches a ~15-token unit whose speaker and subject are named, instead of a ~1,000-token window in which the claim is five words inside an analyst's assessment.
 
 Our contributions are:
 
@@ -191,7 +190,7 @@ Three results stand out. First, the 2,048-token fact cell (92/100 correct at 2,2
 
 At top-1, chunks are marginally ahead (48–49 vs 47) — but not cost-neutrally, since one chunk is many times larger than one fact: facts reach 47/100 at a mean 233 total tokens versus 729–903 for chunks. From k=3 upward facts lead at every depth: 68/100 at 366 tokens versus 53–60/100 at 1,892–2,348 tokens (k=3), and 79/100 at 1,414 tokens versus 59–66/100 at 11,697–14,465 tokens (k=20) — roughly 8–10× cheaper while answering 13–20 more questions. Facts saturate at 79/100 by k=20; fixed chunks *fall* from 66/100 at k=20 to 61/100 at k=30, additional raw context distracting the answer model rather than helping. A per-question minimum-successful-depth analysis shows facts make 84/100 questions answerable-and-supported by k=30 versus 73–76/100 for the chunk controls (median first-success depth is 1 for all representations, reflecting simple direct lookups). Facts do not universally need fewer *units* — some direct questions are answered from one chunk; what they provide is a better joint coverage–depth–token curve.
 
-**4.6 Where the advantage concentrates.** Qualitative audit of fact-win cases identifies four mechanisms: *attribution* (claims arrive with normalized speakers, so respondent vs. questioner needs no reconstruction), *coreference* ("she ultimately removed that tweet" is retrieved as "Senator Maria Chappelle-Nadal ultimately removed the tweet"), *claim salience* (a compact proposition matches its question without competing broadcast vocabulary), and *opinion coverage* (explicit judgments and predictions widen the answerable surface).
+**4.6 Where the advantage concentrates.** Qualitative audit of fact-win cases identifies four mechanisms: *attribution* (claims arrive with normalized speakers, so respondent vs. questioner needs no reconstruction), *coreference* (as in the introduction's example, "I think they can catch up" is retrieved as "Dubay thinks big box retailers can catch up to Amazon"), *claim salience* (a compact proposition matches its question without competing broadcast vocabulary), and *opinion coverage* (explicit judgments and predictions widen the answerable surface).
 
 **4.7 Negative and cautionary results.** *(Results here are facts only; interpretation deferred to Section 5.)* (a) In an earlier 3,000-session agent-evaluation matrix where models queried each index through a constrained search tool, the fixed-chunk condition led the then-current fact index on evidence coverage — the fact advantage did not automatically survive the agent/tool layer. (b) A fact-plus-quote embedding ablation improved fact retrieval modestly but did not close that agent-layer gap by itself. (c) All results in 4.2–4.4 use same-document development data and LLM judges; an 80-item blinded human calibration worksheet exists but no human labels have been collected yet.
 
