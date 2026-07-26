@@ -31,6 +31,7 @@ func Execute() {
 	root.AddCommand(newStudyTwoCommand())
 	root.AddCommand(newDualFieldCommand())
 	root.AddCommand(newTwoPassCommand())
+	root.AddCommand(newContextualizeCommand())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

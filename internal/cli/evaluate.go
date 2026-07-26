@@ -115,8 +115,8 @@ func newQuestionExportCommand() *cobra.Command {
 	return command
 }
 func newEvaluationRunCommand() *cobra.Command {
-	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel, documentList, resumeRun string
-	var topK, embeddingBatchSize, contextChars, contextTokens int
+	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel, documentList, resumeRun, retrievalMode, rerankModel string
+	var topK, embeddingBatchSize, contextChars, contextTokens, rerankCandidates int
 	var generate bool
 	command := &cobra.Command{Use: "run", Short: "Retrieve every question and record evidence coverage (optionally generate answers)", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
@@ -135,7 +135,7 @@ func newEvaluationRunCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, ContextChars: contextChars, ContextTokens: contextTokens, DocumentExternalIDs: documents, ResumeRunID: resumeRun, Generate: generate})
+		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, ContextChars: contextChars, ContextTokens: contextTokens, DocumentExternalIDs: documents, ResumeRunID: resumeRun, Generate: generate, RetrievalMode: retrievalMode, RerankModel: rerankModel, RerankCandidates: rerankCandidates})
 		if err != nil {
 			return err
 		}
@@ -160,6 +160,9 @@ func newEvaluationRunCommand() *cobra.Command {
 	command.Flags().IntVar(&contextChars, "context-chars", 0, "Maximum retrieved-context characters passed to the answer model; 0 does not pack")
 	command.Flags().IntVar(&contextTokens, "context-tokens", 0, "Maximum cl100k_base-estimated retrieved-context tokens passed to the answer model; 0 does not pack")
 	command.Flags().BoolVar(&generate, "generate", false, "Generate source-cited answers and store them")
+	command.Flags().StringVar(&retrievalMode, "retrieval-mode", "vector", "Retrieval path: vector, or hybrid (vector + Postgres full-text with reciprocal rank fusion)")
+	command.Flags().StringVar(&rerankModel, "rerank-model", "", "Optional Fireworks reranker (e.g. accounts/fireworks/models/qwen3-reranker-8b) applied before the top-k cut")
+	command.Flags().IntVar(&rerankCandidates, "rerank-candidates", 100, "Candidates fetched for reranking when --rerank-model is set")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if generate && generatorModel == "" {
 			return fmt.Errorf("--generator-model is required with --generate")

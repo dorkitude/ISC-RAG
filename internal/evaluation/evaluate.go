@@ -138,6 +138,12 @@ func Export(ctx context.Context, pool *pgxpool.Pool, split, path string) (int, e
 
 type Config struct {
 	Representation, Version, QuestionSplit, CorpusSplit, EmbeddingModel, GeneratorModel string
+	// RetrievalMode selects "vector" (default) or "hybrid" (vector + Postgres
+	// full-text with reciprocal rank fusion). RerankModel, when set, rescores
+	// RerankCandidates retrieved units with a Fireworks reranker before the
+	// top-k cut.
+	RetrievalMode, RerankModel string
+	RerankCandidates           int
 	TopK, EmbeddingBatchSize, ContextChars, ContextTokens                               int
 	DocumentExternalIDs                                                                 []string
 	ResumeRunID                                                                         string
@@ -159,7 +165,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 	if cfg.ContextChars > 0 && cfg.ContextTokens > 0 {
 		return Metrics{}, fmt.Errorf("context character and token budgets are mutually exclusive")
 	}
-	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "document_external_ids": cfg.DocumentExternalIDs, "top_k": cfg.TopK, "context_char_budget": cfg.ContextChars, "context_token_budget": cfg.ContextTokens, "context_tokenizer": tokenEncodingName(cfg.ContextTokens), "generate": cfg.Generate})
+	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "document_external_ids": cfg.DocumentExternalIDs, "top_k": cfg.TopK, "context_char_budget": cfg.ContextChars, "context_token_budget": cfg.ContextTokens, "context_tokenizer": tokenEncodingName(cfg.ContextTokens), "generate": cfg.Generate, "retrieval_mode": cfg.RetrievalMode, "rerank_model": cfg.RerankModel, "rerank_candidates": cfg.RerankCandidates})
 	if cfg.ResumeRunID == "" {
 		err := pool.QueryRow(ctx, `INSERT INTO experiment_runs(kind,representation,representation_version,embedding_model,generator_model,parameters) VALUES('retrieval',$1,$2,$3,$4,$5) RETURNING id`, cfg.Representation, cfg.Version, cfg.EmbeddingModel, nullString(cfg.GeneratorModel), parameters).Scan(&runID)
 		if err != nil {
@@ -224,7 +230,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 		}
 		for i, question := range batch {
 			metrics.Questions++
-			results, err := retrieval.SearchVector(ctx, pool, embedding.VectorString(vectors[i]), retrieval.Config{Representation: cfg.Representation, Version: cfg.Version, CorpusSplit: cfg.CorpusSplit, EmbeddingModel: cfg.EmbeddingModel, TopK: cfg.TopK})
+			results, err := retrieve(ctx, pool, client, embedding.VectorString(vectors[i]), question.text, cfg)
 			if err != nil {
 				return metrics, fail(ctx, pool, runID, err)
 			}
@@ -402,4 +408,47 @@ func nullString(s string) any {
 		return nil
 	}
 	return s
+}
+
+// retrieve runs the configured retrieval path: plain vector search, hybrid
+// vector+full-text fusion, and an optional reranker rescoring pass.
+func retrieve(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, vector, questionText string, cfg Config) ([]retrieval.Result, error) {
+	fetchK := cfg.TopK
+	if cfg.RerankModel != "" {
+		if cfg.RerankCandidates > fetchK {
+			fetchK = cfg.RerankCandidates
+		}
+	}
+	rcfg := retrieval.Config{Representation: cfg.Representation, Version: cfg.Version, CorpusSplit: cfg.CorpusSplit, EmbeddingModel: cfg.EmbeddingModel, TopK: fetchK}
+	var results []retrieval.Result
+	var err error
+	switch cfg.RetrievalMode {
+	case "", "vector":
+		results, err = retrieval.SearchVector(ctx, pool, vector, rcfg)
+	case "hybrid":
+		results, err = retrieval.SearchVectorHybrid(ctx, pool, vector, questionText, rcfg, fetchK)
+	default:
+		return nil, fmt.Errorf("unknown retrieval mode %q", cfg.RetrievalMode)
+	}
+	if err != nil || cfg.RerankModel == "" {
+		return results, err
+	}
+	documents := make([]string, len(results))
+	for i, r := range results {
+		documents[i] = r.Text
+	}
+	scores, err := client.Rerank(ctx, cfg.RerankModel, questionText, documents)
+	if err != nil {
+		return nil, fmt.Errorf("rerank: %w", err)
+	}
+	reranked := make([]retrieval.Result, 0, cfg.TopK)
+	for _, s := range scores {
+		if len(reranked) == cfg.TopK {
+			break
+		}
+		r := results[s.Index]
+		r.Score = s.Score
+		reranked = append(reranked, r)
+	}
+	return reranked, nil
 }

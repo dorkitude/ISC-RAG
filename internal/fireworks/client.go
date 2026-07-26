@@ -179,3 +179,37 @@ func retryPause(ctx context.Context, attempt int) error {
 		return nil
 	}
 }
+
+type rerankResponse struct {
+	Data []struct {
+		Index          int     `json:"index"`
+		RelevanceScore float64 `json:"relevance_score"`
+	} `json:"data"`
+}
+
+// RerankScore pairs an input document index with the reranker's relevance.
+type RerankScore struct {
+	Index int
+	Score float64
+}
+
+// Rerank scores documents against a query with a Fireworks reranker model and
+// returns the scores sorted most-relevant first, indexed into the input slice.
+func (c *Client) Rerank(ctx context.Context, model, query string, documents []string) ([]RerankScore, error) {
+	payload := map[string]any{"model": model, "query": query, "documents": documents}
+	var response rerankResponse
+	if err := c.request(ctx, "/rerank", payload, &response); err != nil {
+		return nil, err
+	}
+	if len(response.Data) != len(documents) {
+		return nil, fmt.Errorf("reranker returned %d scores for %d documents", len(response.Data), len(documents))
+	}
+	out := make([]RerankScore, len(response.Data))
+	for i, item := range response.Data {
+		if item.Index < 0 || item.Index >= len(documents) {
+			return nil, fmt.Errorf("reranker returned out-of-range index %d", item.Index)
+		}
+		out[i] = RerankScore{Index: item.Index, Score: item.RelevanceScore}
+	}
+	return out, nil
+}
