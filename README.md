@@ -171,6 +171,14 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   it still needs the other chunk controls, independent adjudication, and
   untouched documents. See the
   [answer/cost pilot](docs/fact-development-answer-cost-pilot-20260726.md).
+- **2026-07-25:** Completed the controlled frozen-100 answer accuracy–cost
+  frontier: facts and all three chunk controls at 256/512/1,024/2,048
+  token-estimated context budgets, with structured citations, independent Kimi
+  correctness and source-support screens, and provider-reported token usage.
+  Facts lead every control at every budget; at 512 tokens they are 81/100
+  correct versus 45–46/100 controls at similar cost. A blinded 80-item human
+  calibration worksheet is ready, but no human labels have yet been collected.
+  See the [frontier record](docs/fact-development-answer-frontier-20260725.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).
@@ -327,21 +335,21 @@ Fact: <standalone claim>
 Supporting quote: <exact source quote>
 ```
 
-For example, a raw Berman turn says, in context, “she ultimately removed that
-tweet.” The corresponding fact unit is:
+For example, a raw Keilar turn says “Florida announced nearly 4,000 new cases
+in the past 24 hours.” The corresponding fact unit is:
 
 ```text
-text:    Senator Maria Chappelle Nadal ultimately removed the tweet.
-quote:   she ultimately removed that tweet
-speaker: BERMAN
-turns:   10–10
+text:    Florida announced nearly 4,000 new cases in the past 24 hours.
+quote:   Florida announced nearly 4,000 new cases in the past 24 hours
+speaker: KEILAR
+turns:   3–3
 ```
 
-The competing fixed unit is a raw window spanning turns 7–14: it contains that
-sentence, but also surrounding discussion and the respondent's follow-up. This
-illustrates the intended comparison: chunks ask the answerer to find the claim
-inside a local transcript window; facts present one explicit claim alongside
-its auditable quote.
+The competing fixed unit is a larger raw transcript window that contains this
+sentence alongside surrounding discussion. This illustrates the intended
+comparison: chunks ask the answerer to find the claim inside a local transcript
+window; facts present one explicit, self-contained claim alongside its auditable
+quote.
 
 ### Interpreting retrieval hits
 
