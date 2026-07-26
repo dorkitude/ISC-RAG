@@ -155,6 +155,17 @@ At the matched 512-token budget, facts produced 81/100 correct answers versus 45
 | Semantic chunks | 8,192 | 65/100 | 65/100 | 8,049.9 |
 | Semantic chunks | 16,384 | 70/100 | 70/100 | 16,361.4 |
 
+Decomposing each cell into retrieval coverage (was any gold-overlapping source packed?) and reading accuracy (correctness among only those questions) isolates the representation effect from a needle-in-a-haystack account:
+
+| Representation | Gold packed @2k/4k/8k/16k | Read-acc given gold @2k/4k/8k/16k |
+|---|---|---|
+| Facts + quote | 100 / 100 / 100 / 100 | 92.0 / 87.0 / 88.0 / 86.0 |
+| Fixed chunks | 80 / 88 / 90 / 95 | 76.3 / 78.4 / 75.6 / 78.9 |
+| Turn-aware chunks | 75 / 82 / 91 / 95 | 77.3 / 72.0 / 70.3 / 78.9 |
+| Semantic chunks | 78 / 85 / 88 / 95 | 78.2 / 70.6 / 72.7 / 73.7 |
+
+If large-budget chunk cells merely measured the answer model's haystack weakness, reading accuracy given packed gold would collapse with budget; instead it is roughly flat for fixed chunks (~76–79%) from 2,048 to 16,384 tokens, and chunk budget gains are mostly coverage gains (80%→95%). The dominant effect is a ~14–16-point reading-accuracy gap between compiled facts and raw transcript that is already present at 2,048 tokens, where haystack pressure is minimal; long-context degradation appears as a secondary effect on top (the fact conditions' own decline occurs at fixed 100% coverage and is therefore pure reading degradation with volume).
+
 Three results stand out. First, the 2,048-token fact cell (92/100 correct at 2,233 actual tokens) exceeds every chunk cell at every budget; the best any chunk condition achieves is 75/100 at roughly 16,300 tokens — 7.3× the cost for 17 fewer correct answers — and facts' worst cell (86/100) still exceeds chunks' best. Second, with supply unconstrained, fact accuracy *declines* as budget grows (92→87→88→86; paired 2,048→16,384: 7 regressions vs 2 gains), so compiled context is itself subject to long-context degradation — its optimum simply sits near 2k tokens. Third, chunks convert budget into accuracy (turn-aware gains 20 paired questions from 2,048 to 16,384) but non-monotonically (fixed dips at 8,192), and a qualitative audit verified individual correct→insufficient flips with the gold evidence still packed. The prescription the table supports is not "facts tolerate large contexts better" but "facts make large contexts unnecessary."
 
 **4.5 Depth curve: coverage and cost at uncapped top-k.** To separate the budget manipulation from retrieval depth itself, a second controlled sweep retrieves exactly the top k ∈ {1, 3, 5, 10, 20, 30} units per question with *no packing cap*, passing everything retrieved to the answer model (24 conditions; 2,400 answers; 4,800 independent judgments; DeepSeek V4 Flash as both answerer and — a deliberate development shortcut flagged in §5.4 — automated judge). A question counts only when *both* screens pass: semantic correctness and direct source support.

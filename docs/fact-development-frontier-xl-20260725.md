@@ -80,6 +80,32 @@ tokens` is provider-reported prompt plus completion usage.
 | Turn-aware chunks | 4 | 20 |
 | Semantic chunks | 4 | 11 |
 
+### Decomposition: coverage versus reading accuracy
+
+Each cell splits into whether any packed source overlapped the gold turn range
+(**gold packed**) and blind correctness among only those questions
+(**read-acc**), separating retrieval coverage from reading quality:
+
+| Representation | Gold packed @2k/4k/8k/16k | Read-acc given gold @2k/4k/8k/16k |
+| --- | --- | --- |
+| Facts + quote | 100 / 100 / 100 / 100 | 92.0 / 87.0 / 88.0 / 86.0 |
+| Fixed chunks | 80 / 88 / 90 / 95 | 76.3 / 78.4 / 75.6 / 78.9 |
+| Turn-aware chunks | 75 / 82 / 91 / 95 | 77.3 / 72.0 / 70.3 / 78.9 |
+| Semantic chunks | 78 / 85 / 88 / 95 | 78.2 / 70.6 / 72.7 / 73.7 |
+
+This decomposition addresses the needle-in-a-haystack objection — that large
+chunk budgets merely measure the answer model's haystack weakness. Fixed-chunk
+reading accuracy is flat (~76–79%) from 2,048 to 16,384 tokens: the model finds
+gold in a large packed context about as reliably as in a small one, and chunk
+budget gains are therefore mostly *coverage* gains (80%→95% gold packed).
+The dominant effect is instead a roughly 14–16-point reading-accuracy gap
+between compiled facts and raw transcript that is present already at the
+2,048-token budget, where haystack pressure is minimal. Genuine long-context
+degradation appears as a secondary effect: the fact conditions' own 92→86
+decline occurs at fixed 100% coverage and is therefore pure reading
+degradation with volume, and the turn/semantic mid-budget dips recover only at
+16,384.
+
 ## Findings
 
 1. **Facts dominate on both axes.** The 2,048-token fact cell (92/100 correct,
