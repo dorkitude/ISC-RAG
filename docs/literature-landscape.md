@@ -230,6 +230,36 @@ deterministically evaluable answers.
     it does not run a controlled representation comparison or enforce
     quote-level provenance.
 
+### Ingest-time compilation and token economics (added 2026-07-25)
+
+These entries come from the broader
+[literature deep-dive](literature-deep-dive-isc-cost-20260725.md), which holds
+24 further verified candidates.
+
+31. Natchanon Pollertlam and Witchayut Kornsuwannawit (2026). [*Beyond the Context Window: A Cost-Performance Analysis of Fact-Based Memory vs. Long-Context LLMs for Persistent Agents*](https://arxiv.org/abs/2603.04814). arXiv preprint.
+    The only published explicit break-even analysis for ingest-time fact
+    memory: fact-based memory becomes cheaper than long-context after roughly
+    ten interaction turns at 100k context, under a cost model that includes
+    prompt caching. It compares memory against long context rather than
+    compiled facts against retrieved chunks at matched read budgets, and it
+    validates no provenance — the sharpened, budget-matched version of its
+    amortization argument is the one ISC-RAG makes.
+
+32. Ding Chen et al. (2025). [*HaluMem: Evaluating Hallucinations in Memory Systems of Agents*](https://arxiv.org/abs/2511.03506). arXiv preprint.
+    An operation-level benchmark (~15k memory points over million-token
+    conversations) showing that agent memory systems hallucinate during fact
+    extraction and updating, and that these errors propagate into downstream
+    QA. This is the strongest empirical motivation for ISC-RAG's exact-quote
+    validation gate: extraction without validation is a measured failure mode,
+    not a hypothetical one.
+
+33. Zhenghua Bao and Yi Shi (2026). [*IndexRAG: Bridging Facts for Cross-Document Reasoning at Index Time*](https://arxiv.org/abs/2603.16415). arXiv preprint.
+    Moves multi-hop reasoning offline by pre-generating cross-document
+    "bridging facts" as retrievable units, leaving query time a single-pass
+    retrieval and one LLM call. The nearest structural neighbor to ingest-time
+    semantic compilation for QA; it has no provenance validation, no dialogue
+    domain, and frames the benefit as latency rather than token economics.
+
 ## Directly relevant people and groups to follow
 
 This is a relevance list, **not a citation-count or leadership ranking**. The
@@ -270,10 +300,11 @@ proposal or paper.
 
 ## Quality report and open uncertainties
 
-- **Verified references:** 30 total; **29/30 (97%)** are 2020 or later;
-  **5/30 (17%)** are explicitly marked arXiv preprints and **1/30** is an
+- **Verified references:** 33 total; **32/33 (97%)** are 2020 or later;
+  **8/33 (24%)** are explicitly marked arXiv preprints and **1/33** is an
   industry engineering blog post; **0** have an unverified URL in this
-  document. Entries 26–30 were landing-page verified on 2026-07-25.
+  document. Entries 26–33 were landing-page verified on 2026-07-25, including
+  author lists.
 - **Strongest nearest work:** Dense X Retrieval. The paper should cite it early,
   explain the common proposition idea, and make the different corpus,
   provenance contract, baselines, and evaluation explicit.
