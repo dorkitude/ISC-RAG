@@ -13,6 +13,7 @@ import (
 	"github.com/dorkitude/isc-rag/internal/fireworks"
 	"github.com/dorkitude/isc-rag/internal/retrieval"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkoukk/tiktoken-go"
 )
 
 type EvidenceInput struct {
@@ -82,9 +83,62 @@ func Import(ctx context.Context, pool *pgxpool.Pool, path string) (int, error) {
 	return n, scan.Err()
 }
 
+// Export writes a stable JSONL snapshot of a question split and its canonical
+// evidence. It is deliberately the inverse of Import so generated development
+// sets can be checked into the experiment record after database validation.
+func Export(ctx context.Context, pool *pgxpool.Pool, split, path string) (int, error) {
+	rows, err := pool.Query(ctx, `SELECT q.id,q.external_id,q.corpus_split,q.question_type,q.text,COALESCE(q.reference_answer,''),d.external_id,ge.turn_start,ge.turn_end FROM questions q LEFT JOIN gold_evidence ge ON ge.question_id=q.id LEFT JOIN documents d ON d.id=ge.document_id WHERE q.corpus_split=$1 ORDER BY q.external_id,ge.turn_start,ge.turn_end`, split)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	type collected struct {
+		input QuestionInput
+	}
+	byID := map[string]*collected{}
+	var order []string
+	for rows.Next() {
+		var id, documentID string
+		var turnStart, turnEnd int
+		var input QuestionInput
+		if err := rows.Scan(&id, &input.ExternalID, &input.CorpusSplit, &input.QuestionType, &input.Text, &input.ReferenceAnswer, &documentID, &turnStart, &turnEnd); err != nil {
+			return 0, err
+		}
+		item := byID[id]
+		if item == nil {
+			item = &collected{input: input}
+			byID[id] = item
+			order = append(order, id)
+		}
+		if documentID != "" {
+			item.input.Evidence = append(item.input.Evidence, EvidenceInput{DocumentExternalID: documentID, TurnStart: turnStart, TurnEnd: turnEnd})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+	for _, id := range order {
+		line, err := json.Marshal(byID[id].input)
+		if err != nil {
+			return 0, err
+		}
+		if _, err = writer.Write(append(line, '\n')); err != nil {
+			return 0, err
+		}
+	}
+	return len(order), nil
+}
+
 type Config struct {
 	Representation, Version, QuestionSplit, CorpusSplit, EmbeddingModel, GeneratorModel string
-	TopK, EmbeddingBatchSize                                                            int
+	TopK, EmbeddingBatchSize, ContextChars, ContextTokens                               int
 	Generate                                                                            bool
 }
 type Metrics struct {
@@ -100,7 +154,10 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 		cfg.EmbeddingBatchSize = 32
 	}
 	var runID string
-	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "top_k": cfg.TopK, "generate": cfg.Generate})
+	if cfg.ContextChars > 0 && cfg.ContextTokens > 0 {
+		return Metrics{}, fmt.Errorf("context character and token budgets are mutually exclusive")
+	}
+	parameters, _ := json.Marshal(map[string]any{"question_split": cfg.QuestionSplit, "corpus_split": cfg.CorpusSplit, "top_k": cfg.TopK, "context_char_budget": cfg.ContextChars, "context_token_budget": cfg.ContextTokens, "context_tokenizer": tokenEncodingName(cfg.ContextTokens), "generate": cfg.Generate})
 	err := pool.QueryRow(ctx, `INSERT INTO experiment_runs(kind,representation,representation_version,embedding_model,generator_model,parameters) VALUES('retrieval',$1,$2,$3,$4,$5) RETURNING id`, cfg.Representation, cfg.Version, cfg.EmbeddingModel, nullString(cfg.GeneratorModel), parameters).Scan(&runID)
 	if err != nil {
 		return Metrics{}, err
@@ -165,13 +222,12 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 				metrics.QuestionsWithHit++
 			}
 			if cfg.Generate {
-				answer, err := generate(ctx, client, cfg.GeneratorModel, question.text, results)
+				answer, citations, usage, err := generate(ctx, client, cfg.GeneratorModel, question.text, results, cfg.ContextChars, cfg.ContextTokens)
 				if err != nil {
 					_ = tx.Rollback(ctx)
 					return metrics, fail(ctx, pool, runID, err)
 				}
-				citations, _ := json.Marshal(results)
-				_, err = tx.Exec(ctx, `INSERT INTO answers(experiment_run_id,question_id,text,citations) VALUES($1,$2,$3,$4)`, runID, question.id, answer, citations)
+				_, err = tx.Exec(ctx, `INSERT INTO answers(experiment_run_id,question_id,text,citations,usage) VALUES($1,$2,$3,$4,$5)`, runID, question.id, answer, citations, usage)
 				if err != nil {
 					_ = tx.Rollback(ctx)
 					return metrics, fail(ctx, pool, runID, err)
@@ -185,26 +241,129 @@ func Run(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg 
 	_, err = pool.Exec(ctx, `UPDATE experiment_runs SET status='complete',completed_at=now() WHERE id=$1`, runID)
 	return metrics, err
 }
-func generate(ctx context.Context, client *fireworks.Client, model, question string, results []retrieval.Result) (string, error) {
-	if model == "" {
-		return "", fmt.Errorf("--generator-model is required with --generate")
-	}
-	var context strings.Builder
-	for i, r := range results {
-		fmt.Fprintf(&context, "[S%d document=%s turns=%d-%d]\nFACT: %s\n", i+1, r.ExternalID, r.TurnStart, r.TurnEnd, r.Text)
-		if r.Quote != "" {
-			fmt.Fprintf(&context, "VERIFIED QUOTE%s: %s\n", namedSpeaker(r.SpeakerLabel), r.Quote)
-		}
-		context.WriteString("\n")
-	}
-	result, err := client.Chat(ctx, model, "Answer only from the supplied transcript sources. If the sources do not establish an answer, say so. Cite every substantive claim using the supplied [S#] labels.", fmt.Sprintf("Question: %s\n\nSources:\n%s", question, context.String()), 600)
-	return result.Text, err
+
+type generatedAnswer struct {
+	Answer         string `json:"answer"`
+	CitedSourceIDs []int  `json:"cited_source_ids"`
 }
-func namedSpeaker(label string) string {
-	if label == "" {
+
+type storedSource struct {
+	ID           int    `json:"id"`
+	DocumentID   string `json:"document_id"`
+	TurnStart    int    `json:"turn_start"`
+	TurnEnd      int    `json:"turn_end"`
+	Text         string `json:"text"`
+	Quote        string `json:"quote,omitempty"`
+	SpeakerLabel string `json:"speaker_label,omitempty"`
+}
+
+type storedCitations struct {
+	CitedSourceIDs []int          `json:"cited_source_ids"`
+	Retrieved      []storedSource `json:"retrieved"`
+}
+
+func generate(ctx context.Context, client *fireworks.Client, model, question string, results []retrieval.Result, contextChars, contextTokens int) (string, []byte, []byte, error) {
+	if model == "" {
+		return "", nil, nil, fmt.Errorf("--generator-model is required with --generate")
+	}
+	context, packed, estimatedTokens, err := packSources(results, contextChars, contextTokens)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	system := `Answer only from the supplied transcript sources. Return ONLY JSON with this exact schema: {"answer":"...","cited_source_ids":[1,2]}. cited_source_ids must contain only source IDs that directly support the answer; use [] when the sources do not establish an answer. When the sources do not establish an answer, set answer exactly to "Insufficient source evidence." Do not mention source IDs in answer.`
+	result, err := client.ChatJSONNoReasoning(ctx, model, system, fmt.Sprintf("Question: %s\n\nSources:\n%s", question, context), 600)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	var parsed generatedAnswer
+	if err = json.Unmarshal([]byte(result.Text), &parsed); err != nil {
+		return "", nil, nil, fmt.Errorf("answer model returned invalid structured answer %q: %w", result.Text, err)
+	}
+	if strings.TrimSpace(parsed.Answer) == "" {
+		parsed.Answer = "Insufficient source evidence."
+	}
+	valid := make(map[int]bool, len(packed))
+	for _, source := range packed {
+		valid[source.ID] = true
+	}
+	seen := map[int]bool{}
+	for _, id := range parsed.CitedSourceIDs {
+		if !valid[id] {
+			return "", nil, nil, fmt.Errorf("answer model cited unavailable source S%d", id)
+		}
+		if seen[id] {
+			return "", nil, nil, fmt.Errorf("answer model cited S%d more than once", id)
+		}
+		seen[id] = true
+	}
+	citations, _ := json.Marshal(storedCitations{CitedSourceIDs: parsed.CitedSourceIDs, Retrieved: packed})
+	usage, _ := json.Marshal(map[string]any{"context_chars": len(context), "context_estimated_tokens": estimatedTokens, "context_token_budget": contextTokens, "context_tokenizer": tokenEncodingName(contextTokens), "prompt_tokens": result.PromptTokens, "completion_tokens": result.CompletionTokens, "total_tokens": result.TotalTokens})
+	return parsed.Answer, citations, usage, nil
+}
+
+func packSources(results []retrieval.Result, contextChars, contextTokens int) (string, []storedSource, int, error) {
+	var context strings.Builder
+	var packed []storedSource
+	encoder, err := tokenEncoder(contextTokens)
+	if err != nil {
+		return "", nil, 0, err
+	}
+	usedTokens := 0
+	for i, r := range results {
+		source := storedSource{ID: i + 1, DocumentID: r.ExternalID, TurnStart: r.TurnStart, TurnEnd: r.TurnEnd, Text: r.Text, Quote: r.Quote, SpeakerLabel: r.SpeakerLabel}
+		text := renderSource(source)
+		if contextChars > 0 && len(context.String())+len(text) > contextChars {
+			if context.Len() == 0 {
+				context.WriteString(text[:min(len(text), contextChars)])
+				packed = append(packed, source)
+			}
+			break
+		}
+		if contextTokens > 0 {
+			tokens := encoder.Encode(text, nil, nil)
+			if usedTokens+len(tokens) > contextTokens {
+				if context.Len() == 0 {
+					remaining := min(len(tokens), contextTokens)
+					context.WriteString(encoder.Decode(tokens[:remaining]))
+					usedTokens = remaining
+					packed = append(packed, source)
+				}
+				break
+			}
+			usedTokens += len(tokens)
+		}
+		context.WriteString(text)
+		packed = append(packed, source)
+	}
+	if contextTokens == 0 {
+		usedTokens = len(encoder.Encode(context.String(), nil, nil))
+	}
+	return context.String(), packed, usedTokens, nil
+}
+
+func renderSource(source storedSource) string {
+	var unit strings.Builder
+	fmt.Fprintf(&unit, "[S%d document=%s turns=%d-%d]\nSOURCE TEXT: %s\n", source.ID, source.DocumentID, source.TurnStart, source.TurnEnd, source.Text)
+	if source.Quote != "" {
+		fmt.Fprintf(&unit, "VERIFIED QUOTE")
+		if source.SpeakerLabel != "" {
+			fmt.Fprintf(&unit, " (speaker: %s)", source.SpeakerLabel)
+		}
+		fmt.Fprintf(&unit, ": %s\n", source.Quote)
+	}
+	unit.WriteString("\n")
+	return unit.String()
+}
+
+func tokenEncodingName(contextTokens int) string {
+	if contextTokens == 0 {
 		return ""
 	}
-	return " (speaker: " + label + ")"
+	return "cl100k_base"
+}
+
+func tokenEncoder(contextTokens int) (*tiktoken.Tiktoken, error) {
+	return tiktoken.GetEncoding("cl100k_base")
 }
 func fail(ctx context.Context, pool *pgxpool.Pool, id string, cause error) error {
 	_, _ = pool.Exec(ctx, `UPDATE experiment_runs SET status='failed',completed_at=now() WHERE id=$1`, id)

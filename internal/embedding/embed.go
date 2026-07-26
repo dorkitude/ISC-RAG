@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Representation, Version, CorpusSplit, Model string
 	Limit, BatchSize                            int
+	FactAndQuote                                bool
 }
 type source struct{ ID, Text string }
 
@@ -24,7 +25,14 @@ func Embed(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cf
 	if cfg.Representation == "" || cfg.Version == "" || cfg.Model == "" {
 		return 0, fmt.Errorf("representation, version, and model are required")
 	}
-	rows, err := pool.Query(ctx, `SELECT su.id,su.text FROM source_units su JOIN documents d ON d.id=su.document_id LEFT JOIN embeddings e ON e.source_unit_id=su.id AND e.model=$1 WHERE su.representation=$2 AND su.version=$3 AND d.corpus_split=$4 AND e.id IS NULL ORDER BY su.id LIMIT $5`, cfg.Model, cfg.Representation, cfg.Version, cfg.CorpusSplit, limitSQL(cfg.Limit))
+	if cfg.FactAndQuote && cfg.Representation != "facts" {
+		return 0, fmt.Errorf("fact-and-quote embedding is only valid for facts")
+	}
+	statement := `SELECT su.id,su.text FROM source_units su JOIN documents d ON d.id=su.document_id LEFT JOIN embeddings e ON e.source_unit_id=su.id AND e.model=$1 WHERE su.representation=$2 AND su.version=$3 AND d.corpus_split=$4 AND e.id IS NULL ORDER BY su.id LIMIT $5`
+	if cfg.FactAndQuote {
+		statement = `SELECT su.id, 'Fact: ' || su.text || E'\n\nSupporting quote: ' || proof.quote FROM source_units su JOIN documents d ON d.id=su.document_id LEFT JOIN embeddings e ON e.source_unit_id=su.id AND e.model=$1 JOIN LATERAL (SELECT fe.quote FROM facts f JOIN fact_evidence fe ON fe.fact_id=f.id WHERE f.document_id=su.document_id AND f.content_hash=su.content_hash ORDER BY fe.id LIMIT 1) proof ON true WHERE su.representation=$2 AND su.version=$3 AND d.corpus_split=$4 AND e.id IS NULL ORDER BY su.id LIMIT $5`
+	}
+	rows, err := pool.Query(ctx, statement, cfg.Model, cfg.Representation, cfg.Version, cfg.CorpusSplit, limitSQL(cfg.Limit))
 	if err != nil {
 		return 0, err
 	}

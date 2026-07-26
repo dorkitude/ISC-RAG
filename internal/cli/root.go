@@ -21,6 +21,7 @@ func Execute() {
 	root.AddCommand(newAuditCommand())
 	root.AddCommand(newBuildCommand())
 	root.AddCommand(newExtractCommand())
+	root.AddCommand(newFactsCommand())
 	root.AddCommand(newEmbedCommand())
 	root.AddCommand(newRetrieveCommand())
 	root.AddCommand(newEvaluateCommand())

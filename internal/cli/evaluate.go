@@ -11,7 +11,7 @@ import (
 
 func newEvaluateCommand() *cobra.Command {
 	command := &cobra.Command{Use: "evaluate", Short: "Import evidence labels and run reproducible RAG evaluations"}
-	command.AddCommand(newQuestionImportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand())
+	command.AddCommand(newQuestionImportCommand(), newQuestionExportCommand(), newPilotQuestionCommand(), newDeterministicPilotQuestionCommand(), newEvaluationRunCommand())
 	return command
 }
 func newDeterministicPilotQuestionCommand() *cobra.Command {
@@ -95,9 +95,27 @@ func newQuestionImportCommand() *cobra.Command {
 	_ = file
 	return command
 }
+func newQuestionExportCommand() *cobra.Command {
+	var projectDir string
+	command := &cobra.Command{Use: "export-questions SPLIT FILE.jsonl", Short: "Export a validated question split with canonical evidence", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
+		pool, err := openDatabase(projectDir)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		count, err := evaluation.Export(cmd.Context(), pool, args[0], args[1])
+		if err != nil {
+			return err
+		}
+		cmd.Printf("Exported %d question(s).\n", count)
+		return nil
+	}}
+	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
+	return command
+}
 func newEvaluationRunCommand() *cobra.Command {
 	var projectDir, representationName, version, questionSplit, corpusSplit, embedModel, generatorModel string
-	var topK, embeddingBatchSize int
+	var topK, embeddingBatchSize, contextChars, contextTokens int
 	var generate bool
 	command := &cobra.Command{Use: "run", Short: "Retrieve every question and record evidence coverage (optionally generate answers)", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
@@ -112,7 +130,7 @@ func newEvaluationRunCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, Generate: generate})
+		metrics, err := evaluation.Run(cmd.Context(), pool, client, evaluation.Config{Representation: representationName, Version: version, QuestionSplit: questionSplit, CorpusSplit: corpusSplit, EmbeddingModel: embedModel, GeneratorModel: generatorModel, TopK: topK, EmbeddingBatchSize: embeddingBatchSize, ContextChars: contextChars, ContextTokens: contextTokens, Generate: generate})
 		if err != nil {
 			return err
 		}
@@ -132,6 +150,8 @@ func newEvaluationRunCommand() *cobra.Command {
 	command.Flags().StringVar(&generatorModel, "generator-model", "accounts/fireworks/models/gpt-oss-120b", "Fireworks answer model")
 	command.Flags().IntVar(&topK, "top-k", 5, "Number of retrieval units")
 	command.Flags().IntVar(&embeddingBatchSize, "embedding-batch-size", 32, "Questions per Fireworks embeddings request")
+	command.Flags().IntVar(&contextChars, "context-chars", 0, "Maximum retrieved-context characters passed to the answer model; 0 does not pack")
+	command.Flags().IntVar(&contextTokens, "context-tokens", 0, "Maximum cl100k_base-estimated retrieved-context tokens passed to the answer model; 0 does not pack")
 	command.Flags().BoolVar(&generate, "generate", false, "Generate source-cited answers and store them")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if generate && generatorModel == "" {

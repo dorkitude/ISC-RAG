@@ -11,6 +11,7 @@ import (
 
 func newEmbedCommand() *cobra.Command {
 	var projectDir, representationName, version, split, model string
+	var factAndQuote bool
 	var limit, batchSize int
 	command := &cobra.Command{Use: "embed", Short: "Embed a retrieval representation in pgvector", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
@@ -25,7 +26,7 @@ func newEmbedCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		count, err := embedding.Embed(cmd.Context(), pool, client, embedding.Config{Representation: representationName, Version: version, CorpusSplit: split, Model: model, Limit: limit, BatchSize: batchSize})
+		count, err := embedding.Embed(cmd.Context(), pool, client, embedding.Config{Representation: representationName, Version: version, CorpusSplit: split, Model: model, Limit: limit, BatchSize: batchSize, FactAndQuote: factAndQuote})
 		if err != nil {
 			return err
 		}
@@ -39,6 +40,7 @@ func newEmbedCommand() *cobra.Command {
 	command.Flags().StringVar(&model, "model", "nomic-ai/nomic-embed-text-v1.5", "Fireworks embedding model")
 	command.Flags().IntVar(&limit, "limit", 0, "Maximum missing embeddings (0 means all)")
 	command.Flags().IntVar(&batchSize, "batch-size", 32, "Inputs per embeddings request")
+	command.Flags().BoolVar(&factAndQuote, "fact-and-quote", false, "Embed each fact with its verified supporting quote")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if representationName == "fact-input" {
 			return fmt.Errorf("fact-input is an internal extraction representation, not an experimental condition")
