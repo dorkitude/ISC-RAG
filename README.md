@@ -206,6 +206,13 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   model. Flash-specific context-rot effects do not reproduce on the stronger
   readers at these volumes. See the
   [RQ4 record](docs/fact-development-rq4-model-generality-20260726.md).
+- **2026-07-26:** Ran the contextual-retrieval chunk baseline: LLM-situated
+  chunks plus a Postgres full-text hybrid and Qwen reranking. The full stack
+  reaches 88/100 at 2,048 tokens versus facts' 92, with the decomposition
+  showing the preamble lifts reading accuracy (partial, unvalidated
+  compilation) while the reranker lifts coverage; reranking does not move the
+  already-saturated fact condition. See
+  [the baseline record](docs/contextual-retrieval-baseline-20260726.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).
