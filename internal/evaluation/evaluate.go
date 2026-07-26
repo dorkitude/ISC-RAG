@@ -293,7 +293,11 @@ type storedSource struct {
 
 type storedCitations struct {
 	CitedSourceIDs []int          `json:"cited_source_ids"`
-	Retrieved      []storedSource `json:"retrieved"`
+	// Citation IDs the answer model emitted that were not in the packed
+	// context (or were duplicates). Kept so source-support judging sees the
+	// violation instead of the run aborting on a deterministic hallucination.
+	InvalidCitedSourceIDs []int          `json:"invalid_cited_source_ids,omitempty"`
+	Retrieved             []storedSource `json:"retrieved"`
 }
 
 func generate(ctx context.Context, client *fireworks.Client, model, question string, results []retrieval.Result, contextChars, contextTokens int) (string, []byte, []byte, error) {
@@ -321,16 +325,16 @@ func generate(ctx context.Context, client *fireworks.Client, model, question str
 		valid[source.ID] = true
 	}
 	seen := map[int]bool{}
+	var kept, invalid []int
 	for _, id := range parsed.CitedSourceIDs {
-		if !valid[id] {
-			return "", nil, nil, fmt.Errorf("answer model cited unavailable source S%d", id)
-		}
-		if seen[id] {
-			return "", nil, nil, fmt.Errorf("answer model cited S%d more than once", id)
+		if !valid[id] || seen[id] {
+			invalid = append(invalid, id)
+			continue
 		}
 		seen[id] = true
+		kept = append(kept, id)
 	}
-	citations, _ := json.Marshal(storedCitations{CitedSourceIDs: parsed.CitedSourceIDs, Retrieved: packed})
+	citations, _ := json.Marshal(storedCitations{CitedSourceIDs: kept, InvalidCitedSourceIDs: invalid, Retrieved: packed})
 	usage, _ := json.Marshal(map[string]any{"context_chars": len(context), "context_estimated_tokens": estimatedTokens, "context_token_budget": contextTokens, "context_tokenizer": tokenEncodingName(contextTokens), "prompt_tokens": result.PromptTokens, "completion_tokens": result.CompletionTokens, "total_tokens": result.TotalTokens})
 	return parsed.Answer, citations, usage, nil
 }

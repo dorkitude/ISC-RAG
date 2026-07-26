@@ -74,6 +74,17 @@ Identical to the frozen-100 development pipeline:
     `source_support_kimi_heldout500_v1`.
   - Coverage / reading-accuracy decomposition reproduced for the XL cells.
 
+  **Correction log (harness):** the `semantic@512` budget-matched cell failed
+  deterministically three times: at temperature zero, DeepSeek V4 Flash
+  reliably cites a source ID absent from the packed context on at least one
+  question, and the harness previously aborted the entire run on any invalid
+  citation. Fix (2026-07-26, before any judging): invalid or duplicate cited
+  IDs are now stripped and recorded as `invalid_cited_source_ids` in the
+  stored citations instead of aborting; the source-support judge therefore
+  scores the violation on its merits. No completed run is affected — the
+  abort path had never been reached by a completed run. This is a harness
+  robustness fix, not a scoring change.
+
 ## Progress
 
 - [x] 2026-07-26 — Sample frozen and committed; overlap checks passed.
