@@ -44,13 +44,18 @@ Identical to the frozen-100 development pipeline:
 - **Fact extraction:** `extract facts --version heldout500-turnwise-opinion-v1
   --input-version heldout500-v1 --document-list … --workers 8` with the
   unchanged high-recall claim-harvester prompt and
-  `accounts/fireworks/models/deepseek-v4-flash` as the extraction model,
-  exact-quote validation gate unchanged. (Model determination: the frozen-100
-  invocation was not recorded, but the extractor's no-reasoning request is
-  rejected outright by the CLI-default `gpt-oss-120b` — observed as a 400 on
-  this run's first call — so the development extraction necessarily used an
-  override, and Flash is the project's established no-reasoning model. The
-  held-out run records the model explicitly to close this gap.)
+  `accounts/fireworks/models/kimi-k2p6` as the extraction model — the model
+  recorded for the frozen-100 extraction in `pipeline_runs.model`, which is
+  the authoritative source. Exact-quote validation gate unchanged.
+
+  **Correction log:** two false starts occurred before the correct run, both
+  fully purged with zero downstream use. (1) The CLI-default `gpt-oss-120b`
+  failed on its first request (rejects the extractor's no-reasoning option)
+  and wrote nothing. (2) A Flash run based on an incorrect inference wrote
+  1,816 fact units before `pipeline_runs.model` was consulted; all were
+  deleted and the run is marked superseded in `pipeline_runs`. Rule adopted:
+  **`pipeline_runs.model` is the protocol authority for every model choice;
+  never infer a model from CLI defaults or surrounding usage.**
 - **Embeddings:** `nomic-ai/nomic-embed-text-v1.5` for all four
   representations, unchanged.
 - **Questions:** one per document (500 total; 100 per question type), authored

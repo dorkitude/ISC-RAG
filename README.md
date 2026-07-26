@@ -428,7 +428,11 @@ triples but never changes fact text or evidence, so it is not part of the primar
 fact-only condition unless explicitly enabled as an ablation.
 
 Model names are command flags, so the experiment records a chosen model instead
-of hiding a provider choice. The current account-visible default is Fireworks
+of hiding a provider choice. **The authoritative record of which model actually
+ran is `pipeline_runs.model` (extraction) and `experiment_runs` (evaluation) in
+PostgreSQL — always consult those before repeating a protocol; CLI defaults are
+conveniences, not protocol.** The frozen-100 `turnwise-opinion-v1` extraction
+ran on Kimi K2.6. The current account-visible default is Fireworks
 GPT-OSS 120B for extraction/generation; Nomic Embed Text v1.5 remains the
 embedding default. Confirm model availability on the account before a large run.
 API calls can incur provider costs.
