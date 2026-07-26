@@ -426,7 +426,6 @@ mechanisms if the fresh blind audits fail.
   or canonical labels.
 - A four-run manual diagnostic found no evidence that the short instruction
   prompts were the principal problem relative to the much larger transcript
-  context. A read-only the production system comparison motivates a frozen development
+  context. A read-only production-implementation comparison motivates a frozen development
   factorial over extraction contract and speaker-aware chunk/carryover context;
-  see `docs/deepseek-manual-prompt-tests.md` and
-  `docs/study2-fact-extraction-hypotheses.md`.
+  see `docs/deepseek-manual-prompt-tests.md`.

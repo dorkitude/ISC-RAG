@@ -2,7 +2,7 @@
 
 A fresh independent subagent applies the locked rubric's binary tests strictly
 and DROPS any card that fails, before the final blind evaluation. This is a
-structural rejection stage (analogous to the production system's post-extraction validation),
+structural rejection stage (analogous to the production pipeline's post-extraction validation),
 not a prompt tweak, added because the gate's "support ≥98% AND zero unsupported"
 is a knife-edge that a single over-reaching card fails. It trades a little
 coverage (C3 over-harvests, leaving headroom above the 75% floor) for reliable

@@ -38,15 +38,11 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   document. The account exposed V4 Pro rather than V4 Flash; the study is
   diagnostic only and did not promote a primary extraction configuration. See
   [the iteration report](docs/deepseek-fact-extraction-iterations.md).
-- **2026-07-24:** Compared the read-only the production system call-transcript implementation
-  with ISC-RAG and recorded evidence-backed, ranked transfer hypotheses. The
-  memo distinguishes observed code behavior from proposed experiments; see
-  [the production system fact-extraction hypotheses](docs/study2-fact-extraction-hypotheses.md).
-- **2026-07-24:** Added a production-mechanics review of the production system. Its main
-  conclusion is that provenance gating, speaker-aware context, domain metadata,
+- **2026-07-24:** Reviewed a read-only production call-transcript fact-extraction
+  implementation and recorded evidence-backed, ranked transfer hypotheses. The
+  main conclusion: provenance gating, speaker-aware context, domain metadata,
   source recovery, and evidence-first serving—not a magic standalone-fact
-  prompt—likely explain production usefulness; see
-  [why the production system works in production](docs/study2-production-why-it-works.md).
+  prompt—likely explain production usefulness.
 - **2026-07-24:** Added deterministic MediaSum speaker metadata. Corpus labels
   such as `ALEX COHEN, host` are parsed into normalized name and role fields
   while retaining the original label; no role is inferred from dialogue text.
@@ -458,11 +454,11 @@ traced back to its source rather than being selected from terminal output.
 The [manual prompt diagnostic](docs/deepseek-manual-prompt-tests.md) found that
 the earlier instruction files were only roughly 229--361 tokens beside an
 approximately 8.3k-token labelled transcript input. The
-[the production system comparison](docs/study2-fact-extraction-hypotheses.md) therefore ranks
+production-implementation comparison therefore ranks
 speaker-aware context construction, a richer extraction contract, and staged
 validation above prompt shortening as development hypotheses.
 
-The active successor is a structural C4 replication in the isolated
+The active successor is a structural replication of the production validation architecture in the isolated
 production-inspired Study #2: a full-transcript antecedent-window generator is
 followed by exact provenance validation, a transcript-blind quote-span support
 audit, narrowly constrained repair, mechanical revalidation, and a fresh blind
