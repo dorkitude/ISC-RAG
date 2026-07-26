@@ -77,11 +77,11 @@ Identical to the frozen-100 development pipeline:
 ## Progress
 
 - [x] 2026-07-26 — Sample frozen and committed; overlap checks passed.
-- [ ] Representations built (`heldout500-v1`)
-- [ ] Chunk embeddings complete
-- [ ] Fact extraction complete (`heldout500-turnwise-opinion-v1`)
-- [ ] Fact embeddings complete
-- [ ] 500 questions authored and validated (split `heldout-500-20260726`)
+- [x] Representations built (`heldout500-v1`): fixed 1,485 / turn 1,418 / semantic 1,816 / fact-input 700 units
+- [x] 2026-07-26 — Chunk embeddings complete (4,719 vectors)
+- [x] 2026-07-26 — Fact extraction complete: 69,746 validated fact units from 500/500 documents (Kimi K2.6; see correction log above)
+- [x] 2026-07-26 — Fact embeddings complete (69,746 vectors); HNSW index refreshed
+- [x] 2026-07-26 — 499/500 questions authored and mechanically validated (one document repeatedly failed the exact-quote gate across two authoring passes and is excluded; balance 93–100 per type)
 - [ ] Budget-matched runs complete (16 runs)
 - [ ] Frontier-XL runs complete (16 runs)
 - [ ] Judging complete
