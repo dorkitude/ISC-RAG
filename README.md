@@ -365,20 +365,24 @@ Fact: <standalone claim>
 Supporting quote: <exact source quote>
 ```
 
-For example, a raw Keilar turn says “Florida announced nearly 4,000 new cases
-in the past 24 hours.” The corresponding fact unit is:
+For example, in a segment on Amazon's growth, a retail analyst says of the
+big-box chains: “They're behind Amazon. … I think they can catch up and they
+still do have certain advantages.” The corresponding fact unit is:
 
 ```text
-text:    Florida announced nearly 4,000 new cases in the past 24 hours.
-quote:   Florida announced nearly 4,000 new cases in the past 24 hours
-speaker: KEILAR
-turns:   3–3
+text:    Dubay thinks big box retailers can catch up to Amazon.
+quote:   I think they can catch up
+speaker: DUBAY
+turns:   8–8
 ```
 
-The competing fixed unit is a larger raw transcript window that contains this
-sentence alongside surrounding discussion. This illustrates the intended
-comparison: chunks ask the answerer to find the claim inside a local transcript
-window; facts present one explicit, self-contained claim alongside its auditable
+Both pronouns are resolved at ingest — “I” to the named speaker and “they” to
+the retailers under discussion — while the verbatim quote is retained as
+checkable evidence. The competing fixed unit is a 3,987-character raw window
+spanning turns 0–11, where this five-word claim sits among revenue figures and
+adjacent discussion. This illustrates the intended comparison: chunks ask the
+answerer to find and interpret the claim inside a local transcript window;
+facts present one explicit, self-contained claim alongside its auditable
 quote.
 
 ### Interpreting retrieval hits
