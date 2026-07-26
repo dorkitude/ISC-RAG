@@ -12,7 +12,7 @@
 | Q1 | Working title | Ingest-Time Semantic Compilation: Accuracy, Provenance, and Token Savings in Dialogue RAG |
 | Q2 | Proposal type | **D — Empirical study** (controlled comparison of retrieval representations) |
 | Q3 | Research phase | **P1 (position/pilot)** — development evidence only; upgrades to P3 after human calibration + document-disjoint replication |
-| Q4 | Venue | ⚠️ **#TBD** — candidates: SIGDIAL (dialogue fit), EMNLP/ACL Findings (retrieval-granularity lineage: Dense X, PropRAG), ECIR/SIGIR short (IR framing). **Rationale needed** — see fulfillment question FQ-1 |
+| Q4 | Venue | Target venue and deadline tracked privately (see planning notes outside this repository) — FQ-1 |
 | Q5 | Skeleton | IMRAD (type D → always IMRAD) |
 | Q6 | Language | EN |
 | Q7 | Method name | **ISC-RAG** (Ingest-time Semantic Compilation for RAG); core distinction: **ISC vs. QSR** (query-time semantic reconstruction) |
