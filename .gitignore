@@ -9,6 +9,9 @@ resources/mediasum/.download-*
 # Locally built Go CLI executable.
 /isc-rag
 
+# Locally compiled capability-limited agent tools.
+/bin/
+
 # Raw study completions and validated source quotations derive from MediaSum and
 # must remain local under its research-use terms.
 /artifacts/
