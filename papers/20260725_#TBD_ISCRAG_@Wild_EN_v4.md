@@ -69,6 +69,18 @@ Retrieval-augmented generation (RAG) systems for dialogue do not yet realize thi
 
 In this paper we present **ISC-RAG** (Ingest-time Semantic Compilation for RAG). ISC-RAG extracts high-recall factual and opinion claims from dialogue transcripts, discards any claim whose exact supporting quotation cannot be found verbatim in the source, attaches speaker attribution and turn-span provenance to every surviving claim, and rewrites claims so that resolvable pronouns and local references name their antecedents. The compiled fact — claim plus verified quote — is the retrieval payload the answer model reads.
 
+A real example from our corpus makes the contrast concrete. In a CNN segment, the anchor pivots mid-interview:
+
+> "…I do want to ask you about a Missouri Democratic senator, Senator Maria Chappelle Nadal, who wrote, I hope Trump is assassinated. Here are some people who now — by the way, she ultimately removed that tweet. There are some people who say that this state senator should step down…" *(BERMAN, turn 10)*
+
+A fixed chunk containing this sentence is a 2,880-character window spanning turns 7–14: the tweet discussion is embedded between an exchange about Confederate statues and the congressman's reaction, and the claim's subject appears as "she." A turn-aware chunk keeps whole turns and a semantic chunk breaks near a topic shift, but both likewise return raw multi-turn transcript in which the answer model must locate the claim and resolve its pronoun. ISC-RAG instead compiles turn 10 into separate fact-plus-quote units, one per claim:
+
+> **Fact:** Senator Maria Chappelle Nadal wrote "I hope Trump is assassinated."
+> **Fact:** Senator Maria Chappelle Nadal ultimately removed the tweet.
+> **Supporting quote:** "she ultimately removed that tweet" — BERMAN, turn 10
+
+A question like "Did Chappelle-Nadal take the tweet down?" now matches a ~20-token unit whose subject is named and whose evidence is a verbatim, checkable span — instead of a ~700-token window in which the fact is one clause of an aside.
+
 Our contributions are:
 
 1. **A provenance-gated fact compilation pipeline for dialogue** in which every indexed unit carries an exact-match-validated source quotation, speaker attribution, and turn span (Section 3).
