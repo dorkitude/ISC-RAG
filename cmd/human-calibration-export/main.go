@@ -36,12 +36,15 @@ type item struct {
 }
 
 func main() {
-	var projectDir, runs, out, correctnessKey, supportKey string
+	var projectDir, runs, out, correctnessKey, supportKey, seed string
+	var perVerdict int
 	flag.StringVar(&projectDir, "project-dir", ".", "Project directory containing .env")
 	flag.StringVar(&runs, "runs", "", "Comma-separated experiment run UUIDs")
 	flag.StringVar(&out, "out", "", "Output Markdown worksheet path")
 	flag.StringVar(&correctnessKey, "correctness-key", "judge_kimi_v1", "Stored blind-correctness judgment key")
 	flag.StringVar(&supportKey, "support-key", "source_support_kimi_v1", "Stored blind-source-support judgment key")
+	flag.StringVar(&seed, "seed", "i5a-20260726", "Deterministic selection and shuffle seed")
+	flag.IntVar(&perVerdict, "per-verdict", 10, "Items per run per LLM verdict bucket (correct / not-correct)")
 	flag.Parse()
 	if runs == "" || out == "" {
 		fmt.Fprintln(os.Stderr, "--runs and --out are required")
@@ -70,25 +73,18 @@ WITH base AS (
   JOIN experiment_runs e ON e.id=a.experiment_run_id
   JOIN questions q ON q.id=a.question_id
   WHERE e.id=ANY($1::uuid[])
-), scored AS (
-  SELECT b.*, EXISTS (
-    SELECT 1 FROM base peer
-    WHERE peer.external_id=b.external_id AND peer.budget=b.budget
-      AND peer.correct <> b.correct
-  ) AS contrast
-  FROM base b
 ), ranked AS (
   SELECT *, row_number() OVER (
-    PARTITION BY representation,budget,question_type
-    ORDER BY contrast DESC, md5(answer_id::text)
+    PARTITION BY run_id, (correct='correct')
+    ORDER BY md5($4 || answer_id::text)
   ) AS n
-  FROM scored
+  FROM base
 )
 SELECT answer_id,run_id,external_id,representation,budget,question_type,question,reference_answer,
        answer,citations,correct,support
 FROM ranked
-WHERE n=1
-ORDER BY representation,budget::int,question_type`, strings.Split(runs, ","), correctnessKey, supportKey)
+WHERE n <= $5
+ORDER BY md5($4 || 'shuffle' || answer_id::text)`, strings.Split(runs, ","), correctnessKey, supportKey, seed, perVerdict)
 	if err != nil {
 		panic(err)
 	}
@@ -111,7 +107,7 @@ ORDER BY representation,budget::int,question_type`, strings.Split(runs, ","), co
 	var worksheet strings.Builder
 	worksheet.WriteString("# ISC-RAG blinded human-calibration worksheet\n\n")
 	worksheet.WriteString("This sheet deliberately omits representation, budget, run ID, and model verdicts. For each item, independently label (a) whether the answer matches the reference answer and (b) whether the cited source directly supports the generated answer. Mark an answer incorrect if it changes an entity, number, attribution, polarity, scope, or time. Mark source support absent when a citation is missing, irrelevant, or only related.\n\n")
-	worksheet.WriteString("There are 80 deterministic strata: 4 representations × 4 budgets × 5 question families. Within each stratum, the selection prefers a question where Kimi’s correctness verdict differs across representations at that budget; this makes disagreement cases available for calibration without revealing the condition to the reviewer.\n\n")
+	worksheet.WriteString("Items are drawn in equal numbers from a small set of system configurations, balanced within each between answers an automated screen accepted and rejected; neither the configuration nor the screen verdict is shown, and item order is a fixed deterministic shuffle identical for every rater. Judge only what is on the page.\n\n")
 	for i, x := range items {
 		fmt.Fprintf(&worksheet, "## Item %03d\n\n**Question:** %s\n\n**Reference answer:** %s\n\n**Generated answer:** %s\n\n", i+1, x.Question, x.Reference, x.Answer)
 		cited := citedSources(x.Citations)
@@ -129,8 +125,22 @@ ORDER BY representation,budget::int,question_type`, strings.Split(runs, ","), co
 		}
 		worksheet.WriteString("**Human correctness:** [ ] Correct  [ ] Incorrect  [ ] Unclear\n\n**Human source support:** [ ] Supported  [ ] Unsupported  [ ] Unclear\n\n**Notes:**\n\n---\n\n")
 	}
-	if len(items) != 80 {
-		panic(fmt.Errorf("expected 80 calibration strata, got %d", len(items)))
+	expected := len(strings.Split(runs, ",")) * perVerdict * 2
+	if len(items) != expected {
+		buckets := map[string]int{}
+		for _, x := range items {
+			verdict := "not-correct"
+			if x.Correct == "correct" {
+				verdict = "correct"
+			}
+			buckets[x.Representation+"@"+x.Budget+" "+verdict]++
+		}
+		fmt.Fprintf(os.Stderr, "note: %d items rather than %d — a verdict bucket is exhausted (every available item in it is included):\n", len(items), expected)
+		for k, v := range buckets {
+			if v < perVerdict {
+				fmt.Fprintf(os.Stderr, "  short bucket: %s has only %d item(s)\n", k, v)
+			}
+		}
 	}
 	if err = os.WriteFile(out, []byte(worksheet.String()), 0o644); err != nil {
 		panic(err)
@@ -146,6 +156,15 @@ ORDER BY representation,budget::int,question_type`, strings.Split(runs, ","), co
 		if _, err = key.Write(append(record, '\n')); err != nil {
 			panic(err)
 		}
+	}
+	csvPath := strings.TrimSuffix(out, filepath.Ext(out)) + "-ratings.csv"
+	var sheet strings.Builder
+	sheet.WriteString("item_id,rater_id,j1_correct,j1_note,j2_supported,j2_note,flag_reference_bad,flag_citation_broken,flag_evasive,flag_needs_discussion,minutes\n")
+	for i := range items {
+		fmt.Fprintf(&sheet, "%03d,,,,,,,,,,\n", i+1)
+	}
+	if err = os.WriteFile(csvPath, []byte(sheet.String()), 0o644); err != nil {
+		panic(err)
 	}
 	fmt.Printf("Wrote %d blinded calibration items to %s and hidden key to %s.\n", len(items), out, keyPath)
 }
