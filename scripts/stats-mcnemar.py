@@ -85,9 +85,7 @@ def main() -> int:
 
     print(f"# McNemar paired analysis — metric: {args.metric}, "
           f"correctness key: {args.correctness_key}\n")
-    print("| Budget | Comparison | Ref acc [95% CI] | Other acc [95% CI] | "
-          "Discordant b/c | Exact McNemar p | Odds ratio | Risk diff |")
-    print("|---|---|---|---|---|---|---|---|")
+    rows = []
 
     for budget in sorted(groups, key=lambda b: int(b)):
         runs = dict(groups[budget])
@@ -114,11 +112,35 @@ def main() -> int:
             rd = (ref_ok - oth_ok) / n
             rlo, rhi = wilson(ref_ok, n)
             olo, ohi = wilson(oth_ok, n)
-            print(f"| {budget} | {args.reference} vs {label} | "
-                  f"{ref_ok}/{n} [{rlo:.3f},{rhi:.3f}] | "
-                  f"{oth_ok}/{n} [{olo:.3f},{ohi:.3f}] | "
-                  f"{b}/{c} | {p:.2e} | "
-                  f"{'inf' if odds == math.inf else f'{odds:.2f}'} | {rd:+.3f} |")
+            rows.append((budget, f"{args.reference} vs {label}", ref_ok, oth_ok,
+                         n, rlo, rhi, olo, ohi, b, c, p, odds, rd))
+
+    # Family-wise corrections across every comparison in this invocation.
+    m = len(rows)
+    order = sorted(range(m), key=lambda i: rows[i][11])
+    holm = [0.0] * m
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * rows[i][11]))
+        holm[i] = running
+    bh = [0.0] * m
+    prev = 1.0
+    for rank in range(m - 1, -1, -1):
+        i = order[rank]
+        prev = min(prev, min(1.0, rows[i][11] * m / (rank + 1)))
+        bh[i] = prev
+
+    print("| Budget | Comparison | Ref acc [95% CI] | Other acc [95% CI] | "
+          "Discordant b/c | Exact p | Holm p | BH q | Odds ratio | Risk diff |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
+    for i, (budget, cmp_, ref_ok, oth_ok, n, rlo, rhi, olo, ohi, b, c, p, odds, rd) in enumerate(rows):
+        print(f"| {budget} | {cmp_} | "
+              f"{ref_ok}/{n} [{rlo:.3f},{rhi:.3f}] | "
+              f"{oth_ok}/{n} [{olo:.3f},{ohi:.3f}] | "
+              f"{b}/{c} | {p:.2e} | {holm[i]:.2e} | {bh[i]:.2e} | "
+              f"{'inf' if odds == math.inf else f'{odds:.2f}'} | {rd:+.3f} |")
+    print(f"\n{m} comparisons in the family; Holm controls FWER, "
+          "Benjamini-Hochberg controls FDR.")
     return 0
 
 

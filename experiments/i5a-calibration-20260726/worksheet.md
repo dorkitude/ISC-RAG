@@ -1529,6 +1529,48 @@ Jeff Brady, NPR News, Denver.
 
 ## Item 064
 
+**Question:** In Sara Sidner's report from Ventura, what did she say the terrified neighbor has been doing with his own hose?
+
+**Reference answer:** He has been coming over and wetting down the area as much as possible (near the burned home, fearing the fire would jump the wall onto his home), and calling over firefighters when it starts burning again.
+
+**Generated answer:** The neighbor has been spending time with his own hose coming over and trying to wet down the area as much as possible.
+
+**Cited source(s):**
+
+- Source 1 (CNN-327752, turns 4–4): The neighbor has spent time with his own hose coming over and trying to wet down the area as much as possible.
+  - Verified quote (speaker: SARA SIDNER, CNN CORRESPONDENT): he has spent time with his own hose coming over and trying to make sure he can wet down the area as much as possible
+
+**Human correctness:** [ ] Correct  [ ] Incorrect  [ ] Unclear
+
+**Human source support:** [ ] Supported  [ ] Unsupported  [ ] Unclear
+
+**Notes:**
+
+---
+
+## Item 065
+
+**Question:** During the CNN coverage of Paul Manafort's expected guilty plea, what did Poppy Harlow say Rudy Giuliani had told "Politico" the day before about the possibility of Manafort cooperating?
+
+**Reference answer:** Poppy Harlow said Rudy Giuliani told "Politico" that there's no fear that Paul Manafort will cooperate against the president, and that there's nothing to cooperate about.
+
+**Generated answer:** Rudy Giuliani told 'Politico' there's no fear that Paul Manafort will cooperate against the president.
+
+**Cited source(s):**
+
+- Source 1 (CNN-350057, turns 7–7): Rudy Giuliani yesterday told 'Politico' there's no fear that Paul Manafort will cooperate against the president.
+  - Verified quote (speaker: HARLOW): Rudy Giuliani yesterday told "Politico" there's no fear that Paul Manafort will cooperate against the president.
+
+**Human correctness:** [ ] Correct  [ ] Incorrect  [ ] Unclear
+
+**Human source support:** [ ] Supported  [ ] Unsupported  [ ] Unclear
+
+**Notes:**
+
+---
+
+## Item 066
+
 **Question:** In the CNN segment about the Apple-IBM partnership, what was Rich Lesser's assessment of the value of combining Apple's and IBM's ecosystems?
 
 **Reference answer:** Rich Lesser, CEO and president of the Boston Consulting Group, believed it was a really powerful combination — combining Apple's consumer-driven ecosystem with IBM's business ecosystem to create advantaged business applications — and said it was exactly the kind of thing businesses well beyond the tech world are thinking about as they consider changing their models and which ecosystems to join.
@@ -1550,7 +1592,7 @@ Jeff Brady, NPR News, Denver.
 
 ---
 
-## Item 065
+## Item 067
 
 **Question:** During CNN's coverage of the 9/11 hearings, what did the commission staff report charge that Attorney General John Ashcroft at one point told acting FBI Director Thomas Pickard regarding briefings, according to CNN national correspondent Bob Franken?
 
@@ -1575,7 +1617,7 @@ You talk about things becoming more intense, but is anything sticking out like i
 
 ---
 
-## Item 066
+## Item 068
 
 **Question:** In Abby Phillip's report on the Kavanaugh FBI investigation, who released a statement on Sunday attacking the credibility of accuser Julie Swetnick?
 
@@ -1614,7 +1656,7 @@ And the question about the scope of this investigation is really one that could 
 
 ---
 
-## Item 067
+## Item 069
 
 **Question:** During the CNN Newsroom discussion of Ted Cruz's decision to campaign for Donald Trump, what did columnist Patricia Murphy say happened to Ted Cruz's approval ratings among Republicans after he declined to endorse Trump at the Republican convention?
 
@@ -1641,7 +1683,7 @@ OK. So Larry, Patricia, stick around because we have much more to come. Coming u
 
 ---
 
-## Item 068
+## Item 070
 
 **Question:** According to Maria Ressa's report, whose father led Indonesia to independence 56 years ago and became its first president?
 
@@ -1663,7 +1705,7 @@ Still reminders of the problems ahead: In Aceh, where rebels have been fighting 
 
 ---
 
-## Item 069
+## Item 071
 
 **Question:** In the CNN report, when "Jessica" watched in horror as mace was sprayed into her friend's mouth, who does "he" refer to as the person who did the spraying?
 
@@ -1681,7 +1723,7 @@ Still reminders of the problems ahead: In Aceh, where rebels have been fighting 
 
 ---
 
-## Item 070
+## Item 072
 
 **Question:** In Phil Mattingly's report from Capitol Hill, when he says one of the president's top allies "has now decided the president needs to act unilaterally," which senator is he referring to?
 
@@ -1705,7 +1747,7 @@ And with that in mind, Graham coming out later tonight with a statement saying t
 
 ---
 
-## Item 071
+## Item 073
 
 **Question:** According to Missouri Governor Jay Nixon, how many total fatalities had the storm caused in Missouri, and how many of those deaths were caused by vehicles being swept from flooded roadways?
 
@@ -1728,7 +1770,7 @@ We spoke earlier with CNN meteorologist Tom Sater who said the trouble here is t
 
 ---
 
-## Item 072
+## Item 074
 
 **Question:** During CNN's inauguration-day panel discussion, inaugural historian Jim Bendat said the last time it rained on an inauguration day was for which president, and in what year?
 
@@ -1746,7 +1788,7 @@ We spoke earlier with CNN meteorologist Tom Sater who said the trouble here is t
 
 ---
 
-## Item 073
+## Item 075
 
 **Question:** In the NPR story about Rubi Ibarra's quinceanera, what did Raul Castillo Mendoza, the mayor of Rubi's town Villa de Guadalupe, say most people were actually coming to the party for?
 
@@ -1784,7 +1826,7 @@ Carrie Kahn, NPR News, Mexico City.
 
 ---
 
-## Item 074
+## Item 076
 
 **Question:** In the interview, when Sam Rabadi answered "It approved -- yes, it approved the use and the sale of these items," what organization was "it" referring to?
 
@@ -1813,7 +1855,7 @@ All right. President Trump says now is not the time to talk about gun control. W
 
 ---
 
-## Item 075
+## Item 077
 
 **Question:** In Brandon Caro's view, what does he feel will happen in Afghanistan after the Americans leave in 2014?
 
@@ -1834,7 +1876,7 @@ All right. President Trump says now is not the time to talk about gun control. W
 
 ---
 
-## Item 076
+## Item 078
 
 **Question:** During CNN's coverage of President Trump's COVID-19 diagnosis, what did CNN Senior Medical Correspondent Elizabeth Cohen say that President Trump's obesity does to his risk of hospitalization?
 
@@ -1852,7 +1894,7 @@ All right. President Trump says now is not the time to talk about gun control. W
 
 ---
 
-## Item 077
+## Item 079
 
 **Question:** In the CNN segment about the Apple-IBM partnership, what was Rich Lesser's assessment of the value of combining Apple's and IBM's ecosystems?
 
@@ -1880,7 +1922,7 @@ Stop mocking me! This is my BlackBerry, and you're mocking me for typing, you're
 
 ---
 
-## Item 078
+## Item 080
 
 **Question:** According to entertainment journalist Katrina Szish on SHOWBIZ TONIGHT, what effect did she believe Hailey's interview would have on public opinion of Jon Gosselin?
 

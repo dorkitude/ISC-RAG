@@ -79,12 +79,16 @@ WITH base AS (
     ORDER BY md5($4 || answer_id::text)
   ) AS n
   FROM base
+), shortfall AS (
+  SELECT run_id, GREATEST(0, $5 - count(*) FILTER (WHERE correct <> 'correct')) AS missing
+  FROM base GROUP BY run_id
 )
-SELECT answer_id,run_id,external_id,representation,budget,question_type,question,reference_answer,
-       answer,citations,correct,support
-FROM ranked
-WHERE n <= $5
-ORDER BY md5($4 || 'shuffle' || answer_id::text)`, strings.Split(runs, ","), correctnessKey, supportKey, seed, perVerdict)
+SELECT r.answer_id,r.run_id,r.external_id,r.representation,r.budget,r.question_type,r.question,r.reference_answer,
+       r.answer,r.citations,r.correct,r.support
+FROM ranked r JOIN shortfall s ON s.run_id=r.run_id
+WHERE (r.correct <> 'correct' AND r.n <= $5)
+   OR (r.correct = 'correct' AND r.n <= $5 + s.missing)
+ORDER BY md5($4 || 'shuffle' || r.answer_id::text)`, strings.Split(runs, ","), correctnessKey, supportKey, seed, perVerdict)
 	if err != nil {
 		panic(err)
 	}
@@ -125,6 +129,9 @@ ORDER BY md5($4 || 'shuffle' || answer_id::text)`, strings.Split(runs, ","), cor
 		}
 		worksheet.WriteString("**Human correctness:** [ ] Correct  [ ] Incorrect  [ ] Unclear\n\n**Human source support:** [ ] Supported  [ ] Unsupported  [ ] Unclear\n\n**Notes:**\n\n---\n\n")
 	}
+	// The pre-registered rule (experiments/i5a-calibration-20260726/PROTOCOL.md)
+	// backfills a short judge-incorrect bucket from the judge-correct side, so
+	// the expected total is exact.
 	expected := len(strings.Split(runs, ",")) * perVerdict * 2
 	if len(items) != expected {
 		buckets := map[string]int{}

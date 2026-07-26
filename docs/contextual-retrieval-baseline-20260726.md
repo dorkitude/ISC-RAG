@@ -61,6 +61,28 @@ advantage survive against that full stack at matched budgets?
    accounting differs (contextualization ≈ 2.3M tokens for this sample
    versus the heavier fact-extraction bill).
 
+### Significance and full-stack cost accounting (added after review request)
+
+McNemar, facts vs the full CR stack at 2,048: discordant pairs **8/4**, exact
+p = 0.39 — *not significant*. Facts vs the weaker CR variants remain
+significant (hybrid: 17/4, p = 0.0072; embeddings-only: 21/5, p = 0.0025).
+The honest claim is therefore: **facts match the strongest available chunk
+stack on accuracy within statistical noise, at materially lower query cost,
+with validated provenance.**
+
+Query-path token accounting for the full CR stack (measured from stored
+units and provider-reported usage): the reranking leg scores the top-50
+contextualized candidates at a mean 916 tokens each ≈ **45.8k reranker
+tokens per query**, plus a 1,848-token answer read — ≈ 47.7k tokens per
+query versus 2,233 for the fact path: **≈21× the query-path tokens**. Caveat:
+the reranker is an 8B model with a lower per-token price than the answer
+model, so the dollar multiple is smaller than the token multiple but remains
+large; the fact path needs no reranker at all (its bonus rerank arm changed
+nothing). Ingest accounting: contextualization consumed ≈1.2M tokens for
+this sample (0.91M transcript + 0.23M chunk + outputs); fact extraction's
+ingest cost is higher, which is precisely the amortization trade the ISC
+cost model prices.
+
 Caveats: single runs per cell (judge noise plausibly ±3–4), rerank
 candidate counts differ between chunk (50) and fact (100) arms for payload
 size reasons.
