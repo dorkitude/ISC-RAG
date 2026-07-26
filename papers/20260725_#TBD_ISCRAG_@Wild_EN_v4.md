@@ -80,6 +80,14 @@ A fixed chunk containing this sentence is a 3,987-character window spanning turn
 
 Both pronouns are resolved at ingest — "I" to the named speaker and "they" to the retailers under discussion — with the verbatim source span retained as checkable evidence. A question like "Who thought traditional retailers could catch up to Amazon?" now matches a ~15-token unit whose speaker and subject are named, instead of a ~1,000-token window in which the claim is five words inside an analyst's assessment.
 
+Compilation also changes what a *single* retrieval must carry. One turn frequently yields several distinct claims: in an interview after the Haiti earthquake, one Ban Ki-moon turn compiles into five separate facts, among them:
+
+> **Fact:** Ban Ki-moon met President Preval yesterday. — quote: "I met President Preval yesterday"
+> **Fact:** Ban Ki-moon believes sovereign, primary sovereignty should rest with the Haitian government.
+> **Fact:** Ban Ki-moon believes major government institutions have been devastated, including the presidential palace.
+
+The fixed chunk containing this turn is a 3,981-character window spanning turns 15–33. Because each fact is indexed separately, a question about the presidential palace retrieves that claim alone: the answer model is not handed Ban Ki-moon's four other assertions — let alone the nineteen-turn neighborhood — merely because they share a window. A chunk index cannot make that selection; any question touching one of the five claims drags in all of them and their surroundings. (The same granularity has a cost we return to later: facts from the same turn compete with one another for retrieval rank.)
+
 Our contributions are:
 
 1. **A provenance-gated fact compilation pipeline for dialogue** in which every indexed unit carries an exact-match-validated source quotation, speaker attribution, and turn span (Section 3).
