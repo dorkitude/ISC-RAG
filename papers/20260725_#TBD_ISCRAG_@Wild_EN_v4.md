@@ -17,7 +17,7 @@
 | Q6 | Language | EN |
 | Q7 | Method name | **ISC-RAG** (Ingest-time Semantic Compilation for RAG); core distinction: **ISC vs. QSR** (query-time semantic reconstruction) |
 | Q8 | Core claim (one sentence) | Compiling dialogue into provenance-validated, self-contained facts at ingest lets a RAG system answer more questions from substantially less read-time context than transcript chunking, at lower per-query token cost. |
-| Q9 | Authors & affiliations | Kyle Wild (first author) — Chief Technology Officer, Endgame Labs; Visiting Researcher, Asia AI Institute, Musashino University (⚠️ ORCID pending); Yusuke Takahashi — Faculty of Data Science, Asia AI Institute, Musashino University / AIx, Inc., Tokyo, Japan — https://orcid.org/0009-0006-8351-2280 |
+| Q9 | Authors & affiliations | Kyle Wild (first author) — Chief Technology Officer, Endgame Labs; Visiting Researcher, Asia AI Institute, Musashino University — https://orcid.org/0009-0001-6918-3197; Yusuke Takahashi — Faculty of Data Science, Asia AI Institute, Musashino University / AIx, Inc., Tokyo, Japan — https://orcid.org/0009-0006-8351-2280 |
 | Q10 | Deadline & page limit | ⚠️ 〔 〕 — FQ-1 |
 | Q11 | Attached material | `docs/preliminary-findings-and-abstract-20260725.md`; `docs/fact-development-answer-frontier-20260725.md`; `docs/fact-development-top-k-depth-full-20260725.md`; `docs/fact-development-frontier-xl-20260725.md`; `docs/literature-landscape.md` (33 verified refs); `docs/literature-deep-dive-isc-cost-20260725.md` (27 verified items); repo `README.md` status log |
 | Q12 | Version & date | v4 / 2026-07-25 |
