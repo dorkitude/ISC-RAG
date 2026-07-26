@@ -294,6 +294,66 @@ deterministic speaker parser. It checks the ID and aligned utterance/speaker
 arrays required for canonical turns, non-empty source text and labels, UTF-8,
 and reports optional document-metadata completeness separately.
 
+## Retrieval data model
+
+ISC-RAG keeps the transcript immutable and builds versioned retrieval views
+over it. The core objects are:
+
+| Object | One row represents | Important fields |
+| --- | --- | --- |
+| `documents` | One MediaSum transcript | Stable external ID, corpus/split, optional programme metadata |
+| `turns` | One ordered, raw transcript utterance | `ordinal`, corpus-provided `speaker_label`, raw `text`, canonical character offsets |
+| `source_units` | One retrievable unit for a representation/version | `representation`, `version`, turn/character span, retrieval `text` |
+| `embeddings` | One vector for a source unit and embedding model | `source_unit_id`, model, dimensions, pgvector value |
+| `facts` + `fact_evidence` | One canonical standalone claim and its verified evidence | Claim text; exact quote, quote span, turn span, and speaker label |
+
+Every retrieval condition ultimately searches `source_units`; this keeps the
+query and vector-search path identical. The difference is what one unit means:
+
+| Condition | `source_units.text` contains | Typical trade-off |
+| --- | --- | --- |
+| Fixed chunk | A contiguous raw transcript window (default: up to 4,000 UTF-8 bytes, with 400-byte overlap) | Preserves nearby dialogue, but one specific claim can be diluted by unrelated turns. |
+| Turn / semantic chunk | Consecutive raw turns grouped by a size or lexical-cohesion rule | Alternate chunk baselines that preserve transcript wording. |
+| Fact | One provenance-validated, standalone atomic claim | Makes a specific assertion easy to match, but several facts from the same turn can compete for rank. |
+
+For facts, `source_units.text` is the standalone claim. The canonical `facts`
+and `fact_evidence` rows retain the claim's exact source quotation and its
+location. The fact-plus-quote condition embeds the following representation
+while returning both fields to the answerer:
+
+```text
+Fact: <standalone claim>
+
+Supporting quote: <exact source quote>
+```
+
+For example, a raw Berman turn says, in context, “she ultimately removed that
+tweet.” The corresponding fact unit is:
+
+```text
+text:    Senator Maria Chappelle Nadal ultimately removed the tweet.
+quote:   she ultimately removed that tweet
+speaker: BERMAN
+turns:   10–10
+```
+
+The competing fixed unit is a raw window spanning turns 7–14: it contains that
+sentence, but also surrounding discussion and the respondent's follow-up. This
+illustrates the intended comparison: chunks ask the answerer to find the claim
+inside a local transcript window; facts present one explicit claim alongside
+its auditable quote.
+
+### Interpreting retrieval hits
+
+Evaluation questions store a **gold source turn**: the pre-annotated transcript
+turn or range containing the supporting evidence. A result is a hit at `@1` if
+the top-ranked unit overlaps that range; it is a hit at `@5` if any of the first
+five units overlaps it. This measures whether retrieval reaches the correct
+transcript location, not necessarily whether a returned fact states the answer.
+One turn can produce many facts, so a related but answer-insufficient fact from
+the gold turn can still count as a gold-turn hit. Answer correctness and
+source-support checks are recorded separately.
+
 ## Runnable experiment pipeline
 
 The default `v1` setup uses 4,000-byte units, 400-byte fixed-window overlap, and
