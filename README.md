@@ -197,6 +197,15 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   including 16,384 (best chunk 75/100 at 7.3× the tokens), and fact accuracy
   *declines* with larger budgets — compiled context has its own small-context
   optimum. See [the frontier-XL record](docs/fact-development-frontier-xl-20260725.md).
+- **2026-07-26:** Completed the RQ4 model-generality sweep: Kimi K2.6 and
+  GLM 5.2 as answer models on facts, fixed, and turn-aware chunks at the
+  2,048/16,384 budget endpoints, cross-judged so no model judges its own
+  answers. Facts lead every model at every matched budget, and facts at
+  2,048 tokens beat chunks at 16,384 for all three models — Flash+facts@2k
+  (92/100) edges GLM+chunks@16k (91/100) at ~13% of the tokens on a cheaper
+  model. Flash-specific context-rot effects do not reproduce on the stronger
+  readers at these volumes. See the
+  [RQ4 record](docs/fact-development-rq4-model-generality-20260726.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).
