@@ -38,14 +38,14 @@ Verified in `docs/literature-landscape.md` (33 entries, landing-page checked) an
 | 6 | Pollertlam & Kornsuwannawit 2026, Beyond the Context Window (arXiv preprint) | Only explicit ingest-amortization break-even analysis | OK |
 | 7 | Chen et al. 2025, HaluMem (arXiv preprint) | Fact extraction hallucinates → motivates the validation gate | OK |
 | 8 | Bao & Shi 2026, IndexRAG (arXiv preprint) | Nearest neighbor on index-time reasoning | OK |
-| 9 | Taranukhin et al. 2026 〔verify authors〕, Token Tax (arXiv preprint) | Cost–quality frontier framing, chunk-level only | ⚠️ verify author list |
+| 9 | Hamilton et al. 2026, Token Tax (arXiv preprint) | Cost–quality frontier framing, chunk-level only | OK (verified 2026-07-26) |
 | 10 | Microsoft 2024, LazyGraphRAG (blog) | The counter-position: defer semantics to query time | OK |
 | 11 | Lewis et al. 2020, RAG, NeurIPS | Canonical retrieve-then-generate (QSR) | OK |
 | 12 | Karpukhin et al. 2020, DPR, EMNLP | Dense retrieval baseline lineage | OK |
 | 13 | Choi et al. 2021, Decontextualization, TACL | Making sentences stand-alone: the rewriting contract | OK |
 | 14 | Zhu et al. 2021, MediaSum, NAACL | Corpus | OK |
 | 15 | Min et al. 2023, FActScore, EMNLP | Atomic-fact evaluation precedent | OK |
-| 16 | Chhikara et al. 2025 〔verify authors〕, Mem0 (arXiv preprint) | Industry fact-extraction memory + 90% token-savings claim, no provenance | ⚠️ verify author list |
+| 16 | Chhikara et al. 2025, Mem0 (arXiv preprint) | Industry fact-extraction memory + 90% token-savings claim, no provenance | OK (verified 2026-07-26) |
 | 17 | Jiang et al. 2023 / PISCO 2025, prompt/context compression (arXiv preprints) | Query-time token reduction — lossy, provenance-destroying contrast | OK |
 | 18 | Zahn & Chana 2026, Facts as First-Class Objects (arXiv preprint) | Symbolic knowledge-object memory; conceptual sibling | OK |
 
@@ -232,14 +232,14 @@ We presented ISC-RAG, an ingest-time semantic compilation pipeline that turns di
 [6] N. Pollertlam and W. Kornsuwannawit, "Beyond the Context Window: A Cost-Performance Analysis of Fact-Based Memory vs. Long-Context LLMs for Persistent Agents," arXiv:2603.04814, 2026 (preprint).
 [7] D. Chen et al., "HaluMem: Evaluating Hallucinations in Memory Systems of Agents," arXiv:2511.03506, 2025 (preprint).
 [8] Z. Bao and Y. Shi, "IndexRAG: Bridging Facts for Cross-Document Reasoning at Index Time," arXiv:2603.16415, 2026 (preprint).
-[9] 〔verify authors〕, "The Token Tax of Epistemic Accuracy: RAG vs Long-Context," arXiv:2606.20898, 2026 (preprint).
+[9] A. Hamilton et al., "The Token Tax of Epistemic Accuracy: Comparing RAG and Long-Context Architectures for Document-Grounded Generative AI Applications," arXiv:2606.20898, 2026 (preprint).
 [10] Microsoft Research, "LazyGraphRAG: Setting a New Standard for Quality and Cost," blog, 2024.
 [11] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS, 2020.
 [12] V. Karpukhin et al., "Dense Passage Retrieval for Open-Domain Question Answering," EMNLP, 2020.
 [13] E. Choi et al., "Decontextualization: Making Sentences Stand-Alone," TACL, 2021.
 [14] C. Zhu et al., "MediaSum: A Large-scale Media Interview Dataset for Dialogue Summarization," NAACL, 2021.
 [15] S. Min et al., "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation," EMNLP, 2023.
-[16] 〔verify authors〕, "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory," arXiv:2504.19413, 2025 (preprint).
+[16] P. Chhikara et al., "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory," arXiv:2504.19413, 2025 (preprint).
 [17] M. Louis et al. 〔verify〕, "PISCO: Pretty Simple Compression for Retrieval-Augmented Generation," arXiv:2501.16075, 2025 (preprint); H. Jiang et al., "LLMLingua," EMNLP, 2023.
 [18] O. Zahn and S. Chana, "Facts as First Class Objects: Knowledge Objects for Persistent LLM Memory," arXiv:2603.17781, 2026 (preprint).
 [19] N. F. Liu et al., "Lost in the Middle: How Language Models Use Long Contexts," TACL, 2024.
