@@ -247,6 +247,9 @@ project decisions.
 
 ## License and data handling
 
+The code and documentation in this repository are released under the
+[MIT License](LICENSE).
+
 MediaSum is restricted to research use by its authors. Its data must not be
 redistributed outside the terms of the source release. The raw files are ignored
 by Git; this repository records acquisition metadata and processing code only.

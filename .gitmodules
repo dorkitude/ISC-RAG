@@ -1,0 +1,3 @@
+[submodule "sources/MediaSum"]
+	path = sources/MediaSum
+	url = https://github.com/zcgzcgzcg1/MediaSum.git
