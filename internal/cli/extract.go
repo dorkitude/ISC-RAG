@@ -10,8 +10,8 @@ import (
 )
 
 func newExtractCommand() *cobra.Command {
-	var projectDir, version, inputVersion, split, model string
-	var limit, offset, maxFacts int
+	var projectDir, version, inputVersion, split, model, documentList string
+	var limit, offset, maxFacts, workers int
 	command := &cobra.Command{Use: "extract facts", Short: "Extract verified atomic facts from fact-input units", RunE: func(cmd *cobra.Command, args []string) error {
 		pool, err := openDatabase(projectDir)
 		if err != nil {
@@ -25,7 +25,11 @@ func newExtractCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		count, err := facts.Extract(cmd.Context(), pool, client, facts.Config{Version: version, InputVersion: inputVersion, CorpusSplit: split, Model: model, Limit: limit, Offset: offset, MaxFacts: maxFacts})
+		documents, err := readDocumentList(documentList)
+		if err != nil {
+			return err
+		}
+		count, err := facts.Extract(cmd.Context(), pool, client, facts.Config{Version: version, InputVersion: inputVersion, CorpusSplit: split, Model: model, Limit: limit, Offset: offset, MaxFacts: maxFacts, Workers: workers, DocumentExternalIDs: documents})
 		if err != nil {
 			return err
 		}
@@ -40,6 +44,8 @@ func newExtractCommand() *cobra.Command {
 	command.Flags().IntVar(&limit, "limit", 0, "Maximum documents (0 means all)")
 	command.Flags().IntVar(&offset, "offset", 0, "Documents to skip after stable external-ID ordering")
 	command.Flags().IntVar(&maxFacts, "max-facts", 50, "Maximum facts per extraction input unit")
+	command.Flags().StringVar(&documentList, "document-list", "", "Optional newline-delimited canonical document IDs")
+	command.Flags().IntVar(&workers, "workers", 1, "Concurrent independent document extractions")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if model == "" {
 			return fmt.Errorf("model is required")

@@ -10,7 +10,7 @@ import (
 )
 
 func newBuildCommand() *cobra.Command {
-	var projectDir, representationName, version, split string
+	var projectDir, representationName, version, split, documentList string
 	var limit, maxChars, overlap, semanticMin, factInputMax int
 	command := &cobra.Command{
 		Use: "build", Short: "Build reproducible retrieval representations from canonical turns",
@@ -28,7 +28,11 @@ func newBuildCommand() *cobra.Command {
 				representations = []string{representation.Fixed, representation.Turn, representation.Semantic, representation.FactInput}
 			}
 			for _, name := range representations {
-				count, err := representation.Build(cmd.Context(), pool, representation.Config{Representation: name, Version: version, CorpusSplit: split, Limit: limit, MaxChars: maxChars, OverlapChars: overlap, SemanticMin: semanticMin, FactInputMax: factInputMax})
+				documents, err := readDocumentList(documentList)
+				if err != nil {
+					return err
+				}
+				count, err := representation.Build(cmd.Context(), pool, representation.Config{Representation: name, Version: version, CorpusSplit: split, Limit: limit, MaxChars: maxChars, OverlapChars: overlap, SemanticMin: semanticMin, FactInputMax: factInputMax, DocumentExternalIDs: documents})
 				if err != nil {
 					return fmt.Errorf("build %s: %w", name, err)
 				}
@@ -46,6 +50,7 @@ func newBuildCommand() *cobra.Command {
 	command.Flags().IntVar(&overlap, "overlap-chars", 400, "Fixed-window overlap in UTF-8 bytes")
 	command.Flags().IntVar(&semanticMin, "semantic-min-chars", 2000, "Minimum semantic chunk size in UTF-8 bytes")
 	command.Flags().IntVar(&factInputMax, "fact-input-max-chars", 10000, "Maximum extraction-input size in UTF-8 bytes")
+	command.Flags().StringVar(&documentList, "document-list", "", "Optional newline-delimited canonical document IDs")
 	command.PreRunE = func(cmd *cobra.Command, args []string) error {
 		valid := map[string]bool{representation.Fixed: true, representation.Turn: true, representation.Semantic: true, representation.FactInput: true, "all": true}
 		if !valid[strings.ToLower(representationName)] {

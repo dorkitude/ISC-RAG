@@ -9,25 +9,30 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/dorkitude/isc-rag/internal/fireworks"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const SystemPrompt = `You extract explicit, atomic facts from human dialogue. Return ONLY JSON shaped as {"facts":[{"text":"standalone atomic claim","quote":"exact supporting quote"}]}. Extract only claims explicitly stated in the provided text. Do not speculate, summarize conversational dynamics, infer unstated context, or write meta-claims. Every fact must be understandable on its own. The source supplies a deterministic speaker label for every turn: when an attribution is needed, use that speaker's supplied name exactly. Never write "the speaker", "the host", or "the guest" in fact text. Quotes must be verbatim, concise, and under 240 characters.`
+const SystemPrompt = `You are a high-recall claim harvester for human dialogue. Return ONLY JSON shaped as {"facts":[{"text":"atomic attributed claim","quote":"exact supporting quote from TARGET TURN"}]}. Extract EVERY explicit atomic claim in the TARGET TURN: factual assertions AND explicitly expressed opinions, beliefs, judgments, assessments, recommendations, preferences, intentions, predictions, and hypotheses. Do not rank claims, summarize, merge claims, or omit a claim because it seems minor. CONTEXT TURNS are only for resolving names and references; never extract a claim or quote from context. Each quote must be a contiguous verbatim substring of the TARGET TURN, concise, and under 240 characters. Preserve modality, uncertainty, negation, and attribution. Use the supplied target speaker's name when attribution makes a claim clearer; never write "the speaker", "the host", or "the guest". Do not invent, strengthen, or infer a claim. If the target turn contains no extractable assertion or expressed opinion, return an empty facts array.`
 
 var genericSpeaker = regexp.MustCompile(`(?i)\bthe (speaker|host|guest)\b`)
 
 type Config struct {
 	Version, InputVersion, CorpusSplit, Model string
 	Limit, Offset, MaxFacts                   int
+	DocumentExternalIDs                       []string
+	Workers                                   int
 }
 type extracted struct {
 	Facts []candidate `json:"facts"`
 }
 type candidate struct {
-	Text  string `json:"text"`
-	Quote string `json:"quote"`
+	Text        string `json:"text"`
+	Quote       string `json:"quote"`
+	TargetStart int    `json:"-"`
+	TargetEnd   int    `json:"-"`
 }
 
 type enrichmentItem struct {
@@ -46,6 +51,7 @@ const enrichmentPrompt = `For each supplied immutable fact, return ONLY JSON sha
 type inputUnit struct {
 	ID, DocumentID, Text string
 	CharStart, CharEnd   int
+	TurnStart, TurnEnd   int
 }
 
 func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config) (int, error) {
@@ -58,7 +64,18 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	if cfg.Offset < 0 {
 		return 0, fmt.Errorf("offset must not be negative")
 	}
-	rows, err := pool.Query(ctx, `SELECT su.id,su.document_id,su.text,su.char_start,su.char_end FROM source_units su JOIN documents d ON d.id=su.document_id WHERE su.representation='fact-input' AND su.version=$1 AND su.document_id IN (SELECT id FROM documents WHERE corpus='mediasum' AND corpus_split=$2 ORDER BY external_id LIMIT $3 OFFSET $4) ORDER BY d.external_id,su.char_start`, cfg.InputVersion, cfg.CorpusSplit, limitSQL(cfg.Limit), cfg.Offset)
+	if cfg.Workers <= 0 {
+		cfg.Workers = 1
+	}
+	statement := `SELECT su.id,su.document_id,su.text,su.char_start,su.char_end,su.turn_start,su.turn_end FROM source_units su JOIN documents d ON d.id=su.document_id WHERE su.representation='fact-input' AND su.version=$1 AND d.corpus='mediasum' AND d.corpus_split=$2`
+	args := []any{cfg.InputVersion, cfg.CorpusSplit}
+	if len(cfg.DocumentExternalIDs) > 0 {
+		statement += ` AND d.external_id=ANY($3)`
+		args = append(args, cfg.DocumentExternalIDs)
+	}
+	statement += ` ORDER BY d.external_id,su.char_start LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
+	args = append(args, limitSQL(cfg.Limit), cfg.Offset)
+	rows, err := pool.Query(ctx, statement, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -67,7 +84,7 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	var order []string
 	for rows.Next() {
 		var u inputUnit
-		if err := rows.Scan(&u.ID, &u.DocumentID, &u.Text, &u.CharStart, &u.CharEnd); err != nil {
+		if err := rows.Scan(&u.ID, &u.DocumentID, &u.Text, &u.CharStart, &u.CharEnd, &u.TurnStart, &u.TurnEnd); err != nil {
 			return 0, err
 		}
 		if _, ok := byDoc[u.DocumentID]; !ok {
@@ -82,36 +99,134 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	if err != nil {
 		return 0, err
 	}
+	workCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	jobs := make(chan string)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	processed := 0
+	var firstErr error
+	for range cfg.Workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for docID := range jobs {
+				if err := extractDocument(workCtx, pool, client, cfg, runID, docID, byDoc[docID]); err != nil {
+					mu.Lock()
+					if firstErr == nil {
+						firstErr = err
+						cancel()
+					}
+					mu.Unlock()
+					return
+				}
+				mu.Lock()
+				processed++
+				mu.Unlock()
+			}
+		}()
+	}
 	for _, docID := range order {
-		var all []candidate
-		for _, u := range byDoc[docID] {
-			maxFacts := min(cfg.MaxFacts, 50)
-			labeled, err := labeledInput(ctx, pool, u)
-			if err != nil {
-				failRun(ctx, pool, runID)
-				return processed, err
-			}
-			response, err := client.ChatJSON(ctx, cfg.Model, SystemPrompt, fmt.Sprintf("<LABELED_TURNS>\n%s\n</LABELED_TURNS>\nReturn at most %d facts.", labeled, maxFacts), 2400)
-			if err != nil {
-				failRun(ctx, pool, runID)
-				return processed, fmt.Errorf("extract document %s: %w", docID, err)
-			}
-			facts, err := decode(response.Text)
-			if err != nil {
-				failRun(ctx, pool, runID)
-				return processed, fmt.Errorf("parse document %s: %w", docID, err)
-			}
-			all = append(all, facts.Facts...)
+		select {
+		case jobs <- docID:
+		case <-workCtx.Done():
+			break
 		}
-		if err := persistDocument(ctx, pool, docID, cfg, runID, all); err != nil {
-			failRun(ctx, pool, runID)
-			return processed, err
+		if workCtx.Err() != nil {
+			break
 		}
-		processed++
+	}
+	close(jobs)
+	wg.Wait()
+	if firstErr != nil {
+		failRun(ctx, pool, runID)
+		return processed, firstErr
 	}
 	_, err = pool.Exec(ctx, `UPDATE pipeline_runs SET status='complete',completed_at=now() WHERE id=$1`, runID)
 	return processed, err
+}
+
+func extractDocument(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config, runID, docID string, units []inputUnit) error {
+	var all []candidate
+	for _, u := range units {
+		targets, err := targetedInputs(ctx, pool, u)
+		if err != nil {
+			return err
+		}
+		for _, target := range targets {
+			maxFacts := min(cfg.MaxFacts, 30)
+			response, err := client.ChatJSONNoReasoning(ctx, cfg.Model, SystemPrompt, target.Prompt+"\n\n"+fmt.Sprintf("Return at most %d claims; do not omit a claim for importance.", maxFacts), 2400)
+			if err != nil {
+				return fmt.Errorf("extract document %s turn %d: %w", docID, target.Ordinal, err)
+			}
+			facts, err := decode(response.Text)
+			if err != nil {
+				return fmt.Errorf("parse document %s turn %d: %w", docID, target.Ordinal, err)
+			}
+			for i := range facts.Facts {
+				facts.Facts[i].TargetStart, facts.Facts[i].TargetEnd = target.CharStart, target.CharEnd
+			}
+			all = append(all, facts.Facts...)
+		}
+	}
+	if err := persistDocument(ctx, pool, docID, cfg, runID, all); err != nil {
+		return err
+	}
+	return nil
+}
+
+type targetInput struct {
+	Ordinal, CharStart, CharEnd int
+	Prompt                      string
+}
+
+// targetedInputs makes every canonical turn in a fact-input unit an explicit
+// extraction target. Two preceding turns are context-only, so the model has
+// enough local dialogue to resolve references without silently harvesting a
+// broad pack and omitting minor claims.
+func targetedInputs(ctx context.Context, pool *pgxpool.Pool, input inputUnit) ([]targetInput, error) {
+	rows, err := pool.Query(ctx, `SELECT ordinal,COALESCE(speaker_name,''),COALESCE(speaker_label,''),text,char_start,char_end FROM turns WHERE document_id=$1 AND ordinal BETWEEN GREATEST(0,$2-2) AND $3 ORDER BY ordinal`, input.DocumentID, input.TurnStart, input.TurnEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	type turn struct {
+		ordinal, start, end int
+		speaker, text       string
+	}
+	var turns []turn
+	for rows.Next() {
+		var t turn
+		var name, label string
+		if err := rows.Scan(&t.ordinal, &name, &label, &t.text, &t.start, &t.end); err != nil {
+			return nil, err
+		}
+		if name == "" {
+			name = speakerName(label)
+		}
+		t.speaker = name
+		turns = append(turns, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var out []targetInput
+	for i, target := range turns {
+		if target.ordinal < input.TurnStart {
+			continue
+		}
+		var b strings.Builder
+		if i > 0 {
+			b.WriteString("<CONTEXT_TURNS>\n")
+			for _, context := range turns[:i] {
+				fmt.Fprintf(&b, "[SPEAKER: %s]\n%s\n", context.speaker, context.text)
+			}
+			b.WriteString("</CONTEXT_TURNS>\n")
+		}
+		fmt.Fprintf(&b, "<TARGET_TURN>\n[SPEAKER: %s]\n%s\n</TARGET_TURN>", target.speaker, target.text)
+		out = append(out, targetInput{Ordinal: target.ordinal, CharStart: target.start, CharEnd: target.end, Prompt: b.String()})
+	}
+	return out, nil
 }
 
 // labeledInput attaches only corpus-provided speaker metadata to the source
@@ -235,7 +350,14 @@ func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string,
 		if text == "" || quote == "" || len(quote) > 240 {
 			continue
 		}
-		at := strings.Index(transcript, quote)
+		if c.TargetStart < 0 || c.TargetEnd > len(transcript) || c.TargetStart >= c.TargetEnd {
+			continue
+		}
+		local := strings.Index(transcript[c.TargetStart:c.TargetEnd], quote)
+		at := -1
+		if local >= 0 {
+			at = c.TargetStart + local
+		}
 		if at < 0 {
 			continue
 		}

@@ -20,14 +20,15 @@ const (
 )
 
 type Config struct {
-	Representation string
-	Version        string
-	CorpusSplit    string
-	Limit          int
-	MaxChars       int
-	OverlapChars   int
-	SemanticMin    int
-	FactInputMax   int
+	Representation      string
+	Version             string
+	CorpusSplit         string
+	Limit               int
+	MaxChars            int
+	OverlapChars        int
+	SemanticMin         int
+	FactInputMax        int
+	DocumentExternalIDs []string
 }
 
 type turn struct {
@@ -61,7 +62,14 @@ func Build(ctx context.Context, pool *pgxpool.Pool, cfg Config) (int, error) {
 	if representation == "" {
 		return 0, fmt.Errorf("representation is required")
 	}
-	rows, err := pool.Query(ctx, `SELECT id FROM documents WHERE corpus='mediasum' AND corpus_split=$1 ORDER BY external_id LIMIT $2`, cfg.CorpusSplit, limitSQL(cfg.Limit))
+	statement, args := `SELECT id FROM documents WHERE corpus='mediasum' AND corpus_split=$1`, []any{cfg.CorpusSplit}
+	if len(cfg.DocumentExternalIDs) > 0 {
+		statement += ` AND external_id=ANY($2)`
+		args = append(args, cfg.DocumentExternalIDs)
+	}
+	statement += ` ORDER BY external_id LIMIT $` + fmt.Sprint(len(args)+1)
+	args = append(args, limitSQL(cfg.Limit))
+	rows, err := pool.Query(ctx, statement, args...)
 	if err != nil {
 		return 0, err
 	}
