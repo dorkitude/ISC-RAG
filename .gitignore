@@ -19,3 +19,4 @@ resources/mediasum/.download-*
 # A legacy local study-artifact directory; transcript-derived material belongs
 # under ignored artifacts rather than in the research repository.
 /ignored artifacts/
+.DS_Store
