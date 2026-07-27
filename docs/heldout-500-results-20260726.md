@@ -104,3 +104,54 @@ cannot even spend the largest budget, and doesn't need to.
 - One harness fix mid-study (invalid-citation strip, see protocol correction
   log) — a robustness fix required to complete `semantic@512`; no completed
   run was affected and no scoring rule changed.
+
+## Extension E1: contextual-retrieval baseline (held-out)
+
+Pre-registered before execution (protocol Extension E1). All 1,485 held-out
+fixed chunks were situated by DeepSeek V4 Flash with the frozen prompt,
+embedded, and evaluated in four cells against the existing held-out facts
+runs. Run ledger appended below; stats in
+`experiments/heldout-500-mcnemar-20260726.md`.
+
+**Correction (execution, not scoring):** the first E1 attempt ran retrieval
+before the contextualized chunks had embeddings — all three affected runs
+returned recall 0.000 and were deleted before any judging; the pipeline was
+re-run with the embed step in place. No judged result was affected.
+
+| Cell | Correct/499 | Evidence recall@300 | Mean prompt tokens |
+|---|---|---|---|
+| facts @2048 (comparator) | 425 (85.2%) | 0.986 | 2,211 |
+| ctx-vector @2048 | 369 (73.9%) | 0.994 | 1,823 |
+| ctx-hybrid @2048 | 377 (75.6%) | 0.994 | 1,825 |
+| ctx-full-stack @2048 | 439 (88.0%) | 0.994 | 1,824 (+ ~45.9k rerank) |
+| facts @16384 (comparator) | 417 (83.6%) | 0.986 | 8,479 |
+| ctx-full-stack @16384 | 436 (87.4%) | 0.994 | 16,179 (+ ~45.9k rerank) |
+
+McNemar (family of 4, Holm/BH):
+
+- facts beat ctx-vector (+0.112, p=2.96e-06 Holm-corrected 1.18e-05) and
+  ctx-hybrid (+0.096, Holm p=1.41e-04) decisively.
+- facts vs ctx-full-stack is a **statistical tie at both budgets**
+  (2048: 45/59 discordant, p=0.202; 16384: 42/61, p=0.076; neither survives
+  any correction), with the full stack nominally ahead by 2.8–3.8 points —
+  the development-set tie (8/4, p=0.39) replicates at n=499, now with the
+  nominal direction favoring the full stack.
+- Contextualization lifts retrieval above plain chunks (0.994 vs 0.984
+  recall@300), consistent with development.
+
+**Cost accounting.** The held-out contextualized chunks average ≈917
+estimated tokens (dev: 916), so the reranking leg scores 50 candidates at
+≈45.9k tokens per query, every query, before the reader sees anything. Full
+query-path totals: ctx-full-stack ≈47.7k tokens/query versus facts ≈2.2k —
+a ≈21× multiple for parity accuracy, unchanged from development. The fact
+path uses no reranker. Ingest-side, contextualization is itself an
+unvalidated partial compilation pass (a preamble per chunk with no
+provenance gate); the fact pipeline's compile cost buys validated,
+quote-linked units instead.
+
+**Interpretation.** On held-out data the strongest chunk-side stack reaches
+fact-level accuracy only by adding a per-query reranking stage that spends
+~21× the tokens of the entire fact path, and by shipping ~16k-token contexts
+at the top budget where the decomposition shows chunk reading accuracy
+degrading. Facts deliver the same statistical accuracy tier with validated
+provenance, ~2.2k tokens per query, and no query-time reranking dependency.

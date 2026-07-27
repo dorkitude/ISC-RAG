@@ -34,3 +34,14 @@
 | 16384 | facts vs semantic | 417/499 [0.801,0.866] | 362/499 [0.685,0.763] | 99/44 | 4.89e-06 | 4.89e-06 | 4.89e-06 | 2.25 | +0.110 |
 
 12 comparisons in the family; Holm controls FWER, Benjamini-Hochberg controls FDR.
+
+# McNemar paired analysis — metric: correct, correctness key: judge_kimi_heldout500_v1
+
+| Budget | Comparison | Ref acc [95% CI] | Other acc [95% CI] | Discordant b/c | Exact p | Holm p | BH q | Odds ratio | Risk diff |
+|---|---|---|---|---|---|---|---|---|---|
+| 2048 | facts vs ctx-vector | 425/499 [0.818,0.880] | 369/499 [0.699,0.776] | 99/43 | 2.96e-06 | 1.18e-05 | 1.18e-05 | 2.30 | +0.112 |
+| 2048 | facts vs ctx-hybrid | 425/499 [0.818,0.880] | 377/499 [0.716,0.791] | 92/44 | 4.71e-05 | 1.41e-04 | 9.42e-05 | 2.09 | +0.096 |
+| 2048 | facts vs ctx-full-stack | 425/499 [0.818,0.880] | 439/499 [0.848,0.905] | 45/59 | 2.02e-01 | 2.02e-01 | 2.02e-01 | 0.76 | -0.028 |
+| 16384 | facts vs ctx-full-stack | 417/499 [0.801,0.866] | 436/499 [0.842,0.900] | 42/61 | 7.56e-02 | 1.51e-01 | 1.01e-01 | 0.69 | -0.038 |
+
+4 comparisons in the family; Holm controls FWER, Benjamini-Hochberg controls FDR.

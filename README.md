@@ -267,8 +267,15 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
 - **2026-07-26:** Pre-registered extension E1 — the contextual-retrieval
   baseline (situated chunks, hybrid retrieval, reranker) replicated on the
   held-out sample against the existing held-out fact runs — before building
-  any of its artifacts. Execution is in progress; results will be appended to
-  the held-out results record.
+  any of its artifacts.
+- **2026-07-27:** Completed E1. Facts beat ctx-vector and ctx-hybrid
+  decisively (Holm p ≤ 1.4e-04); the full stack with reranking is a
+  statistical tie with facts at both budgets (88.0% vs 85.2% at 2,048,
+  p=0.20), nominally ahead, while spending ≈21× the query-path tokens
+  (~45.9k reranker tokens per query versus facts' ~2.2k total) with no
+  validated provenance. An execution slip (retrieval before embeddings;
+  three recall-zero runs deleted unjudged) is disclosed in the results
+  record. See [the held-out results](docs/heldout-500-results-20260726.md).
 
 ## Initial study design
 

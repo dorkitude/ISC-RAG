@@ -109,10 +109,13 @@ corpus:
 
 ### E1 progress
 
-- [ ] Contextualization + embeddings complete
-- [ ] Four ctx runs complete
-- [ ] Judging complete
-- [ ] Results appended to `docs/heldout-500-results-20260726.md`
+- [x] 2026-07-27 — Contextualization + embeddings complete (1,485 units; the
+  first run attempt preceded the embed step, returned recall 0.000 in three
+  runs, and those runs were deleted before judging — see the correction note
+  in the results record)
+- [x] 2026-07-27 — Four ctx runs complete (`experiments/heldout-cr-runs.tsv`)
+- [x] 2026-07-27 — Judging complete (4 × 499 on both keys, zero skips)
+- [x] 2026-07-27 — Results appended to `docs/heldout-500-results-20260726.md`
 
 ## Progress
 
