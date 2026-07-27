@@ -20,3 +20,4 @@ resources/mediasum/.download-*
 # under ignored artifacts rather than in the research repository.
 /ignored artifacts/
 .DS_Store
+human-calibration-export
