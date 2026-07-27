@@ -85,6 +85,35 @@ Identical to the frozen-100 development pipeline:
   abort path had never been reached by a completed run. This is a harness
   robustness fix, not a scoring change.
 
+## Extension E1 (pre-registered 2026-07-26, before execution): contextual-retrieval baseline on the held-out sample
+
+Registered after I6b completed but before any E1 artifact was built. Mirrors
+`docs/contextual-retrieval-baseline-20260726.md` exactly on the held-out
+corpus:
+
+- **Contextualization:** `fixed/heldout500-v1` (1,485 chunks) situated by
+  DeepSeek V4 Flash with the frozen prompt in
+  `internal/cli/contextualize.go` (default `--max-document-chars 120000`),
+  written as `fixed/heldout500-ctx-v1` and embedded with
+  `nomic-ai/nomic-embed-text-v1.5`.
+- **Cells (single shot, mirroring the development comparison):**
+  1. ctx-vector @2,048 (top-300 vector)
+  2. ctx-hybrid @2,048 (RRF k=60 vector + Postgres full-text)
+  3. ctx-full-stack @2,048 (hybrid + `qwen3-reranker-8b` over 50 candidates)
+  4. ctx-full-stack @16,384
+- **Comparators:** existing held-out facts XL runs `2f9634c4` (@2,048) and
+  `e1540d49` (@16,384); no new facts runs.
+- Answer model DeepSeek V4 Flash, temperature zero; blind Kimi judging with
+  the `judge_kimi_heldout500_v1` / `source_support_kimi_heldout500_v1` keys;
+  exact McNemar facts-vs-ctx per cell (family of 4, Holm + BH).
+
+### E1 progress
+
+- [ ] Contextualization + embeddings complete
+- [ ] Four ctx runs complete
+- [ ] Judging complete
+- [ ] Results appended to `docs/heldout-500-results-20260726.md`
+
 ## Progress
 
 - [x] 2026-07-26 — Sample frozen and committed; overlap checks passed.
