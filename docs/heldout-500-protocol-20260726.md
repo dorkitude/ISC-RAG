@@ -93,7 +93,7 @@ Identical to the frozen-100 development pipeline:
 - [x] 2026-07-26 — Fact extraction complete: 69,746 validated fact units from 500/500 documents (Kimi K2.6; see correction log above)
 - [x] 2026-07-26 — Fact embeddings complete (69,746 vectors); HNSW index refreshed
 - [x] 2026-07-26 — 499/500 questions authored and mechanically validated (one document repeatedly failed the exact-quote gate across two authoring passes and is excluded; balance 93–100 per type)
-- [ ] Budget-matched runs complete (16 runs)
-- [ ] Frontier-XL runs complete (16 runs)
-- [ ] Judging complete
-- [ ] Results recorded; deltas vs development reported
+- [x] 2026-07-26 — Budget-matched runs complete (16 runs; `experiments/heldout-matched-runs.tsv`)
+- [x] 2026-07-26 — Frontier-XL runs complete (16 runs; `experiments/heldout-xl-runs.tsv`)
+- [x] 2026-07-26 — Judging complete: 32 runs × 499 answers on both keys, zero skips
+- [x] 2026-07-26 — Results recorded with deltas vs development: `docs/heldout-500-results-20260726.md`; McNemar tables `experiments/heldout-500-mcnemar-20260726.md`
