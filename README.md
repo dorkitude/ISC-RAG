@@ -105,6 +105,22 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   at 6.27 s median end-to-end latency; Kimi K2.6 answered 8/9 at 1.42 s. This
   is an exploratory agent/tool integration result, not a representation result;
   see the [development check](docs/agent-toolbox-development-20260724.md).
+- **2026-07-24:** Ran a separate four-run manual DeepSeek prompt diagnostic. Its
+  result is that prompt length is not the leading failure hypothesis; see
+  [manual prompt tests](docs/deepseek-manual-prompt-tests.md).
+- **2026-07-24:** Started isolated, document-disjoint production-inspired Study #2
+  with a fixed source-only three-document claim ledger, distinct context/proof
+  concepts, and fresh blind audits. No candidate is yet promoted; see the
+  [Study #2 report](docs/fact-study-2.md).
+- **2026-07-24:** Ran three independent five-seed prompt studies, each followed
+  by two controlled hill-climb refinements. None promoted a standalone-fact
+  condition: role metadata improved attribution but not third-party
+  coreference; dialogue units exposed the need to distinguish an utterance
+  speaker from a quoted/asserted source; and dual-field prompts preserved exact
+  evidence but did not make retrieval descriptions trustworthy facts. See
+  [Study #4](docs/fact-prompt-study-4-role-metadata.md),
+  [Study #5](docs/fact-prompt-study-5-dialogue-units.md), and
+  [Study #6](docs/fact-prompt-study-6-dual-field.md).
 - **2026-07-25:** Added a source-grounded, 15-question development retrieval
   probe specifically for pronoun, attribution, and decontextualization
   pressure. On the locally matched CNN slice, rephrased facts hit 13/15 gold
@@ -160,13 +176,6 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   still a same-document development replication, not answer accuracy or a
   paper result; see the
   [replication record](docs/fact-development-sample-100-question-replication.md).
-- **2026-07-26:** Ran the first answer-level token-budget pilot. Facts at a
-  512-character retrieval cap were 64/100 blind-judge correct versus 45/100
-  for fixed chunks at a 2,048-character cap, while using 50.4% fewer actual
-  answer-model tokens. This is promising same-document development evidence;
-  it still needs the other chunk controls, independent adjudication, and
-  untouched documents. See the
-  [answer/cost pilot](docs/fact-development-answer-cost-pilot-20260726.md).
 - **2026-07-25:** Completed the controlled frozen-100 answer accuracy–cost
   frontier: facts and all three chunk controls at 256/512/1,024/2,048
   token-estimated context budgets, with structured citations, independent Kimi
@@ -197,6 +206,13 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   including 16,384 (best chunk 75/100 at 7.3× the tokens), and fact accuracy
   *declines* with larger budgets — compiled context has its own small-context
   optimum. See [the frontier-XL record](docs/fact-development-frontier-xl-20260725.md).
+- **2026-07-26:** Ran the first answer-level token-budget pilot. Facts at a
+  512-character retrieval cap were 64/100 blind-judge correct versus 45/100
+  for fixed chunks at a 2,048-character cap, while using 50.4% fewer actual
+  answer-model tokens. This is promising same-document development evidence;
+  it still needs the other chunk controls, independent adjudication, and
+  untouched documents. See the
+  [answer/cost pilot](docs/fact-development-answer-cost-pilot-20260726.md).
 - **2026-07-26:** Completed the RQ4 model-generality sweep: Kimi K2.6 and
   GLM 5.2 as answer models on facts, fixed, and turn-aware chunks at the
   2,048/16,384 budget endpoints, cross-judged so no model judges its own
@@ -216,22 +232,43 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
 - **2026-07-26:** Consolidated the frozen-sample retrieval and answer/cost
   diagnostics in a preliminary abstract. It remains development evidence only;
   see [preliminary findings](docs/preliminary-findings-and-abstract-20260725.md).
-- **2026-07-24:** Ran a separate four-run manual DeepSeek prompt diagnostic. Its
-  result is that prompt length is not the leading failure hypothesis; see
-  [manual prompt tests](docs/deepseek-manual-prompt-tests.md).
-- **2026-07-24:** Started isolated, document-disjoint production-inspired Study #2
-  with a fixed source-only three-document claim ledger, distinct context/proof
-  concepts, and fresh blind audits. No candidate is yet promoted; see the
-  [Study #2 report](docs/fact-study-2.md).
-- **2026-07-24:** Ran three independent five-seed prompt studies, each followed
-  by two controlled hill-climb refinements. None promoted a standalone-fact
-  condition: role metadata improved attribution but not third-party
-  coreference; dialogue units exposed the need to distinguish an utterance
-  speaker from a quoted/asserted source; and dual-field prompts preserved exact
-  evidence but did not make retrieval descriptions trustworthy facts. See
-  [Study #4](docs/fact-prompt-study-4-role-metadata.md),
-  [Study #5](docs/fact-prompt-study-5-dialogue-units.md), and
-  [Study #6](docs/fact-prompt-study-6-dual-field.md).
+- **2026-07-26:** Hardened the statistics: exact McNemar on discordant pairs
+  with Wilson intervals, odds ratios, risk differences, and both Holm (FWER)
+  and Benjamini–Hochberg (FDR) corrections, applied to the frontier-XL and
+  contextual-retrieval families. The full-stack contextual-retrieval tie is
+  quantified (facts 92 vs 88, discordant 8/4, p=0.39) alongside its query-path
+  token accounting (~45.8k reranker tokens per query versus facts' ~2.2k
+  total). See [the stats record](experiments/frontier-xl-mcnemar-20260726.md)
+  and [the baseline record](docs/contextual-retrieval-baseline-20260726.md).
+- **2026-07-26:** Built the blinded human-calibration materials (I5a/I5b/I5c):
+  an 80-item verdict-balanced worksheet under a pre-registered sampling and
+  backfill rule committed before regeneration, a 10-item practice set, and a
+  Cohen's-kappa script producing both rater–rater and consensus-versus-judge
+  figures. No human labels have been collected; rater recruitment is with the
+  collaborator. See [the calibration protocol](experiments/i5a-calibration-20260726/PROTOCOL.md).
+- **2026-07-26:** Froze and executed the held-out replication protocol (I6a):
+  500 deterministically sampled unseen documents, all four representations
+  rebuilt, 69,746 provenance-validated Kimi K2.6 fact units, and 499
+  transcript-only Fable-authored questions validated against Postgres. Two
+  extraction false starts with the wrong model were purged and logged, and the
+  rule that `pipeline_runs.model` is the protocol authority for model choices
+  is recorded in the protocol correction log. See
+  [the held-out protocol](docs/heldout-500-protocol-20260726.md).
+- **2026-07-26:** Completed the held-out replication runs (I6b): 32 runs
+  (budget-matched and frontier-XL), fully judged blind. Facts win all 32
+  cells; all 24 facts-versus-chunk McNemar comparisons survive Holm at
+  p ≤ 4.9e-06. The coverage/reading decomposition and measured prompt-token
+  costs reproduce the development structure, with honest shrinkage recorded
+  (facts 85.2% held-out versus 92% development at the 2,048-token XL cell).
+  A deterministic invalid-citation crash surfaced by one cell was fixed by
+  stripping and recording invalid citations rather than aborting; no scoring
+  rule changed. This closed the last open blocker. See
+  [the held-out results](docs/heldout-500-results-20260726.md).
+- **2026-07-26:** Pre-registered extension E1 — the contextual-retrieval
+  baseline (situated chunks, hybrid retrieval, reranker) replicated on the
+  held-out sample against the existing held-out fact runs — before building
+  any of its artifacts. Execution is in progress; results will be appended to
+  the held-out results record.
 
 ## Initial study design
 
