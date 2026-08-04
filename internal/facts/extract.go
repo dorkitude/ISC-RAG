@@ -105,13 +105,15 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	processed := 0
+	totals := gateTally{}
 	var firstErr error
 	for range cfg.Workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for docID := range jobs {
-				if err := extractDocument(workCtx, pool, client, cfg, runID, docID, byDoc[docID]); err != nil {
+				tally, err := extractDocument(workCtx, pool, client, cfg, runID, docID, byDoc[docID])
+				if err != nil {
 					mu.Lock()
 					if firstErr == nil {
 						firstErr = err
@@ -122,6 +124,7 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 				}
 				mu.Lock()
 				processed++
+				totals.add(tally)
 				mu.Unlock()
 			}
 		}()
@@ -142,26 +145,27 @@ func Extract(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, 
 		failRun(ctx, pool, runID)
 		return processed, firstErr
 	}
-	_, err = pool.Exec(ctx, `UPDATE pipeline_runs SET status='complete',completed_at=now() WHERE id=$1`, runID)
+	stats, _ := json.Marshal(totals)
+	_, err = pool.Exec(ctx, `UPDATE pipeline_runs SET status='complete',completed_at=now(),parameters=parameters||jsonb_build_object('gate',$2::jsonb) WHERE id=$1`, runID, string(stats))
 	return processed, err
 }
 
-func extractDocument(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config, runID, docID string, units []inputUnit) error {
+func extractDocument(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, cfg Config, runID, docID string, units []inputUnit) (gateTally, error) {
 	var all []candidate
 	for _, u := range units {
 		targets, err := targetedInputs(ctx, pool, u)
 		if err != nil {
-			return err
+			return gateTally{}, err
 		}
 		for _, target := range targets {
 			maxFacts := min(cfg.MaxFacts, 30)
 			response, err := client.ChatJSONNoReasoning(ctx, cfg.Model, SystemPrompt, target.Prompt+"\n\n"+fmt.Sprintf("Return at most %d claims; do not omit a claim for importance.", maxFacts), 2400)
 			if err != nil {
-				return fmt.Errorf("extract document %s turn %d: %w", docID, target.Ordinal, err)
+				return gateTally{}, fmt.Errorf("extract document %s turn %d: %w", docID, target.Ordinal, err)
 			}
 			facts, err := decode(response.Text)
 			if err != nil {
-				return fmt.Errorf("parse document %s turn %d: %w", docID, target.Ordinal, err)
+				return gateTally{}, fmt.Errorf("parse document %s turn %d: %w", docID, target.Ordinal, err)
 			}
 			for i := range facts.Facts {
 				facts.Facts[i].TargetStart, facts.Facts[i].TargetEnd = target.CharStart, target.CharEnd
@@ -169,10 +173,29 @@ func extractDocument(ctx context.Context, pool *pgxpool.Pool, client *fireworks.
 			all = append(all, facts.Facts...)
 		}
 	}
-	if err := persistDocument(ctx, pool, docID, cfg, runID, all); err != nil {
-		return err
-	}
-	return nil
+	return persistDocument(ctx, pool, docID, cfg, runID, all)
+}
+
+// gateTally counts every validation-gate decision for a run so the rejection
+// rate is a recorded property of the run rather than an unmeasured side effect.
+type gateTally struct {
+	Candidates           int `json:"candidates"`
+	Validated            int `json:"validated"`
+	EmptyOrOverlongQuote int `json:"empty_or_overlong_quote"`
+	BadTargetRange       int `json:"bad_target_range"`
+	QuoteNotInTarget     int `json:"quote_not_in_target"`
+	GenericSpeaker       int `json:"generic_speaker"`
+	Duplicate            int `json:"duplicate"`
+}
+
+func (t *gateTally) add(o gateTally) {
+	t.Candidates += o.Candidates
+	t.Validated += o.Validated
+	t.EmptyOrOverlongQuote += o.EmptyOrOverlongQuote
+	t.BadTargetRange += o.BadTargetRange
+	t.QuoteNotInTarget += o.QuoteNotInTarget
+	t.GenericSpeaker += o.GenericSpeaker
+	t.Duplicate += o.Duplicate
 }
 
 type targetInput struct {
@@ -327,30 +350,46 @@ func Enrich(ctx context.Context, pool *pgxpool.Pool, client *fireworks.Client, v
 	}
 	return updated, nil
 }
-func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string, cfg Config, runID string, candidates []candidate) error {
+func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string, cfg Config, runID string, candidates []candidate) (gateTally, error) {
+	tally := gateTally{}
 	transcript, turns, err := documentText(ctx, pool, documentID)
 	if err != nil {
-		return err
+		return tally, err
 	}
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return err
+		return tally, err
 	}
 	defer tx.Rollback(ctx)
 	if _, err = tx.Exec(ctx, `DELETE FROM facts WHERE document_id=$1`, documentID); err != nil {
-		return err
+		return tally, err
 	}
 	if _, err = tx.Exec(ctx, `DELETE FROM source_units WHERE document_id=$1 AND representation='facts' AND version=$2`, documentID, cfg.Version); err != nil {
+		return tally, err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM fact_rejections WHERE document_id=$1`, documentID); err != nil {
+		return tally, err
+	}
+	reject := func(text, quote, reason string, count *int) error {
+		*count++
+		_, err := tx.Exec(ctx, `INSERT INTO fact_rejections(pipeline_run_id,document_id,text,quote,reason) VALUES ($1,$2,$3,$4,$5)`, runID, documentID, text, quote, reason)
 		return err
 	}
 	seen := map[string]bool{}
 	for _, c := range candidates {
+		tally.Candidates++
 		text := strings.TrimSpace(c.Text)
 		quote := strings.TrimSpace(c.Quote)
 		if text == "" || quote == "" || len(quote) > 240 {
+			if err = reject(text, quote, "empty_or_overlong_quote", &tally.EmptyOrOverlongQuote); err != nil {
+				return tally, err
+			}
 			continue
 		}
 		if c.TargetStart < 0 || c.TargetEnd > len(transcript) || c.TargetStart >= c.TargetEnd {
+			if err = reject(text, quote, "bad_target_range", &tally.BadTargetRange); err != nil {
+				return tally, err
+			}
 			continue
 		}
 		local := strings.Index(transcript[c.TargetStart:c.TargetEnd], quote)
@@ -359,32 +398,42 @@ func persistDocument(ctx context.Context, pool *pgxpool.Pool, documentID string,
 			at = c.TargetStart + local
 		}
 		if at < 0 {
+			if err = reject(text, quote, "quote_not_in_target", &tally.QuoteNotInTarget); err != nil {
+				return tally, err
+			}
 			continue
 		}
 		start, end := at, at+len(quote)
 		first, last, speaker := evidenceTurns(turns, start, end)
 		text = replaceGenericSpeaker(text, speaker)
 		if genericSpeaker.MatchString(text) {
+			if err = reject(text, quote, "generic_speaker", &tally.GenericSpeaker); err != nil {
+				return tally, err
+			}
 			continue
 		}
 		key := hash(text)
 		if seen[key] {
+			if err = reject(text, quote, "duplicate", &tally.Duplicate); err != nil {
+				return tally, err
+			}
 			continue
 		}
 		seen[key] = true
 		var factID string
 		err = tx.QueryRow(ctx, `INSERT INTO facts(document_id,text,content_hash,pipeline_run_id) VALUES ($1,$2,$3,$4) RETURNING id`, documentID, text, key, runID).Scan(&factID)
 		if err != nil {
-			return err
+			return tally, err
 		}
 		if _, err = tx.Exec(ctx, `INSERT INTO fact_evidence(fact_id,quote,char_start,char_end,turn_start,turn_end,validation_method,speaker_label) VALUES ($1,$2,$3,$4,$5,$6,'exact',$7)`, factID, quote, start, end, first, last, speaker); err != nil {
-			return err
+			return tally, err
 		}
 		if _, err = tx.Exec(ctx, `INSERT INTO source_units(document_id,representation,version,turn_start,turn_end,char_start,char_end,text,content_hash,pipeline_run_id) VALUES ($1,'facts',$2,$3,$4,$5,$6,$7,$8,$9)`, documentID, cfg.Version, first, last, start, end, text, key, runID); err != nil {
-			return err
+			return tally, err
 		}
+		tally.Validated++
 	}
-	return tx.Commit(ctx)
+	return tally, tx.Commit(ctx)
 }
 
 func speakerName(label string) string {
