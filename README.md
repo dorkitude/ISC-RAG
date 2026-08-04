@@ -276,6 +276,26 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   validated provenance. An execution slip (retrieval before embeddings;
   three recall-zero runs deleted unjudged) is disclosed in the results
   record. See [the held-out results](docs/heldout-500-results-20260726.md).
+- **2026-08-03:** Measured the validation-gate rejection rate, which the
+  production extractor had dropped without counting. A read-only replay
+  harness (`experiments/rejection-rate-sample-20260803/`) re-ran the frozen
+  turnwise Kimi K2.6 extraction on the first 20 held-out documents in
+  production order with zero database writes: 29 of 2,724 candidates rejected
+  (1.06%; 28 unlocatable quotes, 1 empty/overlong), yield 134.7 facts/doc
+  versus the frozen run's 135.5 on the same documents. Provider-reported cost:
+  48.2k prompt + 4.5k completion tokens per document (≈$0.064/doc at current
+  Fireworks Kimi pricing; ≈$32 / 26.3M tokens for the full 500-document
+  corpus). These figures feed the CIDR paper's §2.1 and R\* appendix.
+- **2026-08-03:** Extraction now persists every gate decision: rejected
+  candidates land in the new `fact_rejections` table with a reason
+  (migration `013_fact_rejections.sql`, written but not yet applied to the
+  frozen database), and per-run tallies are stamped into
+  `pipeline_runs.parameters` under a `gate` key.
+- **2026-08-03:** Added `sqldumps/` disaster-recovery convention and took the
+  first full backup: `pg_dump -Fc` of all 23 tables (85,195 facts), attached
+  as an asset to the `sqldump-20260803` GitHub release; dumps themselves are
+  gitignored. Create/restore commands are in
+  [sqldumps/README.md](sqldumps/README.md).
 
 ## Initial study design
 
