@@ -45,6 +45,19 @@
     .claim { color: #e8ecff; font-size: 1.04rem; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
     blockquote { border-left: 3px solid var(--yellow); color: #cbd3f4; font-family: ui-serif, Georgia, serif; margin: 0; padding-left: 13px; }
     .speaker { color: var(--cyan); font-size: .8rem; margin-top: 12px; }
+    pre {
+      background: var(--bg-deep);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--muted);
+      font: .76rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      margin: 18px 0 0;
+      overflow-wrap: anywhere;
+      padding: 12px;
+      white-space: pre-wrap;
+    }
+    .key { color: var(--purple); }
+    .value { color: var(--green); }
     footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; margin-top: 42px; padding-top: 20px; }
     code { color: var(--green); }
   </style>
@@ -53,7 +66,7 @@
   <main>
     <div class="eyebrow">ISC-RAG / held-out corpus</div>
     <h1>Meaning as a maintained reader payload</h1>
-    <p class="lede">Ten provenance-validated cards from ten document-disjoint held-out MediaSum transcripts. Each card stores a self-contained claim for retrieval, the short verbatim evidence quote, and its attributed source turn. The contrast is intentional: the payload resolves conversational references that a reader would otherwise have to reconstruct at query time.</p>
+    <p class="lede">Ten provenance-validated cards from ten document-disjoint held-out MediaSum transcripts. Each card makes the data model explicit: a compiled <code>fact</code> is the reader payload, while an <code>evidence</code> object retains the exact quote, source document, turn, speaker, and validation result. The contrast is intentional: the payload resolves conversational references that a reader would otherwise have to reconstruct at query time.</p>
     <div class="legend">
       <span class="pill"><strong>10</strong> held-out documents</span>
       <span class="pill"><strong>Exact</strong> quote validation</span>
@@ -62,44 +75,74 @@
 
     <section class="grid">
       <article>
-        <header><span class="doc">CNN-136899</span><span class="turn">turn 15</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Puri states he lost two very good friends on that day.</div><div class="label">Exact evidence quote</div><blockquote>“I lost two very good friends on that day”</blockquote><div class="speaker">PURI</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-120348</span><span class="turn">turn 2</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Jim Brossard wants somebody to fight for the flag.</div><div class="label">Exact evidence quote</div><blockquote>“I want somebody to fight for this flag.”</blockquote><div class="speaker">JIM BROSSARD, CUT DOWN MEXICAN FLAG</div></div>
-      </article>
-      <article>
         <header><span class="doc">CNN-116881</span><span class="turn">turn 6</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Bill Clinton thinks Texas is now the number one producer of wind power in America.</div><div class="label">Exact evidence quote</div><blockquote>“I think now the number one producer of wind power in America”</blockquote><div class="speaker">CLINTON</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-120188</span><span class="turn">turn 3</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Ron Gettelfinger feels very good about this tentative agreement.</div><div class="label">Exact evidence quote</div><blockquote>“We feel very good about this tentative agreement”</blockquote><div class="speaker">RON GETTELFINGER, UAW PRESIDENT</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-122121</span><span class="turn">turn 1</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">George W. Bush thinks it's best that all of us not jump to conclusions on individual players.</div><div class="label">Exact evidence quote</div><blockquote>“I think it's best that all of us not jump to conclusions on individual players”</blockquote><div class="speaker">GEORGE W. BUSH, PRESIDENT OF THE UNITED STATES</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-129348</span><span class="turn">turn 1</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Chad Myers thinks the storm moved a little bit to the north.</div><div class="label">Exact evidence quote</div><blockquote>“I think this storm moved a little bit to the north”</blockquote><div class="speaker">CHAD MYERS, CNN METEOROLOGIST</div></div>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Bill Clinton thinks Texas is now the number one producer of wind power in America.</div><div class="label">Exact evidence quote</div><blockquote>“I think now the number one producer of wind power in America”</blockquote><div class="speaker">CLINTON</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Bill Clinton thinks Texas is now the number one producer of wind power in America."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I think now the number one producer of wind power in America"</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-116881"</span>, <span class="key">"turn"</span>: 6, <span class="key">"speaker"</span>: <span class="value">"CLINTON"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
       </article>
       <article>
         <header><span class="doc">CNN-13087</span><span class="turn">turn 3</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Fossella believes it is not necessary for House leaders to be front and center all the time.</div><div class="label">Exact evidence quote</div><blockquote>“I don't believe that it's necessary to be front and center all the time”</blockquote><div class="speaker">FOSSELLA</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-127856</span><span class="turn">turn 0</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Whitfield believes President Bush or the White House must be feeling a small sense of victory.</div><div class="label">Exact evidence quote</div><blockquote>“I have to imagine that President Bush, at least the White House must be feeling a small sense of victory here.”</blockquote><div class="speaker">WHITFIELD</div></div>
-      </article>
-      <article>
-        <header><span class="doc">CNN-127790</span><span class="turn">turn 10</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Sen. John McCain claims to speak for all of America.</div><div class="label">Exact evidence quote</div><blockquote>“I know that I speak for all of America.”</blockquote><div class="speaker">SEN. JOHN MCCAIN (R), PRESUMPTIVE PRES. NOMINEE</div></div>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Fossella believes it is not necessary for House leaders to be front and center all the time.</div><div class="label">Exact evidence quote</div><blockquote>“I don't believe that it's necessary to be front and center all the time”</blockquote><div class="speaker">FOSSELLA</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Fossella believes it is not necessary for House leaders to be front and center all the time."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I don't believe that it's necessary to be front and center all the time"</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-13087"</span>, <span class="key">"turn"</span>: 3, <span class="key">"speaker"</span>: <span class="value">"FOSSELLA"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
       </article>
       <article>
         <header><span class="doc">CNN-131712</span><span class="turn">turn 12</span></header>
-        <div class="body"><div class="label">Compiled claim</div><div class="claim">Barack Obama wants people to go vote.</div><div class="label">Exact evidence quote</div><blockquote>“I want you to go vote.”</blockquote><div class="speaker">SEN. BARACK OBAMA (D), PRESIDENTIAL CANDIDATE</div></div>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Barack Obama wants people to go vote.</div><div class="label">Exact evidence quote</div><blockquote>“I want you to go vote.”</blockquote><div class="speaker">SEN. BARACK OBAMA (D), PRESIDENTIAL CANDIDATE</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Barack Obama wants people to go vote."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I want you to go vote."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-131712"</span>, <span class="key">"turn"</span>: 12, <span class="key">"speaker"</span>: <span class="value">"SEN. BARACK OBAMA (D), PRESIDENTIAL CANDIDATE"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-105842</span><span class="turn">turn 1</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Abramoff stayed for about 25 minutes on the March 6 visit.</div><div class="label">Exact evidence quote</div><blockquote>“He stayed for about 25 minutes”</blockquote><div class="speaker">JACKI SCHECHNER, CNN INTERNET REPORTER</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Abramoff stayed for about 25 minutes on the March 6 visit."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"He stayed for about 25 minutes"</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-105842"</span>, <span class="key">"turn"</span>: 1, <span class="key">"speaker"</span>: <span class="value">"JACKI SCHECHNER, CNN INTERNET REPORTER"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-118387</span><span class="turn">turn 12</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Chris Benoit's testosterone to epitestosterone ratio was 59 to 1.</div><div class="label">Exact evidence quote</div><blockquote>“He was 59 to 1.”</blockquote><div class="speaker">ELIZABETH COHEN, CNN MEDICAL CORRESPONDENT</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Chris Benoit's testosterone to epitestosterone ratio was 59 to 1."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"He was 59 to 1."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-118387"</span>, <span class="key">"turn"</span>: 12, <span class="key">"speaker"</span>: <span class="value">"ELIZABETH COHEN, CNN MEDICAL CORRESPONDENT"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-122121</span><span class="turn">turn 5</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Roger Clemens is really concerned and upset that he has been named in the Mitchell report.</div><div class="label">Exact evidence quote</div><blockquote>“He is really concerned and upset that he has been named in this report.”</blockquote><div class="speaker">RUSTY HARDIN, ATTORNEY FOR ROGER CLEMENS</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Roger Clemens is really concerned and upset that he has been named in the Mitchell report."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"He is really concerned and upset that he has been named in this report."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-122121"</span>, <span class="key">"turn"</span>: 5, <span class="key">"speaker"</span>: <span class="value">"RUSTY HARDIN, ATTORNEY FOR ROGER CLEMENS"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-126090</span><span class="turn">turn 2</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Michelle Obama thinks it was a tough thing for Barack to do.</div><div class="label">Exact evidence quote</div><blockquote>“It was a tough thing for him to do.”</blockquote><div class="speaker">MICHELLE OBAMA, BARACK OBAMA'S WIFE</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Michelle Obama thinks it was a tough thing for Barack to do."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"It was a tough thing for him to do."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-126090"</span>, <span class="key">"turn"</span>: 2, <span class="key">"speaker"</span>: <span class="value">"MICHELLE OBAMA, BARACK OBAMA'S WIFE"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-150549</span><span class="turn">turn 2</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Mayor Michael Bloomberg is confident that they will find out who did the attempted bombing.</div><div class="label">Exact evidence quote</div><blockquote>“I'm confident that we will find out who did it.”</blockquote><div class="speaker">MAYOR MICHAEL BLOOMBERG (I), NEW YORK CITY</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Mayor Michael Bloomberg is confident that they will find out who did the attempted bombing."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I'm confident that we will find out who did it."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-150549"</span>, <span class="key">"turn"</span>: 2, <span class="key">"speaker"</span>: <span class="value">"MAYOR MICHAEL BLOOMBERG (I), NEW YORK CITY"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-156937</span><span class="turn">turn 22</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Feingold agrees with the Tea Party movement on many key issues.</div><div class="label">Exact evidence quote</div><blockquote>“I agree with them on many key issues.”</blockquote><div class="speaker">FEINGOLD</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"Feingold agrees with the Tea Party movement on many key issues."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I agree with them on many key issues."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-156937"</span>, <span class="key">"turn"</span>: 22, <span class="key">"speaker"</span>: <span class="value">"FEINGOLD"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-17398</span><span class="turn">turn 8</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">William J. Clinton thinks it would be a terrible mistake for Milosevic to remain active in the political life of the country.</div><div class="label">Exact evidence quote</div><blockquote>“I think it would be a terrible mistake for him to remain active in the political life of the country.”</blockquote><div class="speaker">WILLIAM J. CLINTON, PRESIDENT OF THE UNITED STATES</div><pre>{
+  <span class="key">"fact"</span>: { <span class="key">"text"</span>: <span class="value">"William J. Clinton thinks it would be a terrible mistake for Milosevic to remain active in the political life of the country."</span> },
+  <span class="key">"evidence"</span>: { <span class="key">"quote"</span>: <span class="value">"I think it would be a terrible mistake for him to remain active in the political life of the country."</span>, <span class="key">"document_id"</span>: <span class="value">"CNN-17398"</span>, <span class="key">"turn"</span>: 8, <span class="key">"speaker"</span>: <span class="value">"WILLIAM J. CLINTON, PRESIDENT OF THE UNITED STATES"</span>, <span class="key">"validation"</span>: <span class="value">"exact"</span> }
+}</pre></div>
       </article>
     </section>
     <footer>All cards are stored compiled facts from the held-out run; each displayed quote passed the system’s exact-match validation against the cited source turn. This gallery is illustrative, not an accuracy evaluation.</footer>
