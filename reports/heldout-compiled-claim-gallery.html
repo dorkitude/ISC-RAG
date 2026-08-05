@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ISC-RAG — Held-out compiled claims</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #1a1b26;
+      --bg-deep: #16161e;
+      --panel: #24283b;
+      --panel-hi: #292e42;
+      --line: #3b4261;
+      --fg: #c0caf5;
+      --muted: #a9b1d6;
+      --blue: #7aa2f7;
+      --cyan: #7dcfff;
+      --purple: #bb9af7;
+      --green: #9ece6a;
+      --yellow: #e0af68;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #24283b 0, var(--bg) 38rem);
+      color: var(--fg);
+      font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 72px; }
+    h1, h2, p { margin-top: 0; }
+    h1 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.1; letter-spacing: -.035em; margin-bottom: 14px; }
+    .eyebrow { color: var(--cyan); font-size: .82rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    .lede { color: var(--muted); font-size: 1.1rem; max-width: 78ch; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 34px; }
+    .pill { border: 1px solid var(--line); border-radius: 999px; color: var(--muted); padding: 5px 11px; font-size: .83rem; }
+    .pill strong { color: var(--green); }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); }
+    article { background: linear-gradient(145deg, var(--panel-hi), var(--panel)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    article header { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 13px 16px; }
+    .doc { color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86rem; font-weight: 700; }
+    .turn { color: var(--muted); font-size: .8rem; }
+    .body { padding: 17px; }
+    .label { color: var(--purple); font-size: .72rem; font-weight: 800; letter-spacing: .1em; margin-bottom: 5px; text-transform: uppercase; }
+    .claim { color: #e8ecff; font-size: 1.04rem; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
+    blockquote { border-left: 3px solid var(--yellow); color: #cbd3f4; font-family: ui-serif, Georgia, serif; margin: 0; padding-left: 13px; }
+    .speaker { color: var(--cyan); font-size: .8rem; margin-top: 12px; }
+    footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; margin-top: 42px; padding-top: 20px; }
+    code { color: var(--green); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">ISC-RAG / held-out corpus</div>
+    <h1>Meaning as a maintained reader payload</h1>
+    <p class="lede">Ten provenance-validated cards from ten document-disjoint held-out MediaSum transcripts. Each card stores a self-contained claim for retrieval, the short verbatim evidence quote, and its attributed source turn. The contrast is intentional: the payload resolves conversational references that a reader would otherwise have to reconstruct at query time.</p>
+    <div class="legend">
+      <span class="pill"><strong>10</strong> held-out documents</span>
+      <span class="pill"><strong>Exact</strong> quote validation</span>
+      <span class="pill"><strong>Reader payload</strong> ≠ raw turn</span>
+    </div>
+
+    <section class="grid">
+      <article>
+        <header><span class="doc">CNN-136899</span><span class="turn">turn 15</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Puri states he lost two very good friends on that day.</div><div class="label">Exact evidence quote</div><blockquote>“I lost two very good friends on that day”</blockquote><div class="speaker">PURI</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-120348</span><span class="turn">turn 2</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Jim Brossard wants somebody to fight for the flag.</div><div class="label">Exact evidence quote</div><blockquote>“I want somebody to fight for this flag.”</blockquote><div class="speaker">JIM BROSSARD, CUT DOWN MEXICAN FLAG</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-116881</span><span class="turn">turn 6</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Bill Clinton thinks Texas is now the number one producer of wind power in America.</div><div class="label">Exact evidence quote</div><blockquote>“I think now the number one producer of wind power in America”</blockquote><div class="speaker">CLINTON</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-120188</span><span class="turn">turn 3</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Ron Gettelfinger feels very good about this tentative agreement.</div><div class="label">Exact evidence quote</div><blockquote>“We feel very good about this tentative agreement”</blockquote><div class="speaker">RON GETTELFINGER, UAW PRESIDENT</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-122121</span><span class="turn">turn 1</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">George W. Bush thinks it's best that all of us not jump to conclusions on individual players.</div><div class="label">Exact evidence quote</div><blockquote>“I think it's best that all of us not jump to conclusions on individual players”</blockquote><div class="speaker">GEORGE W. BUSH, PRESIDENT OF THE UNITED STATES</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-129348</span><span class="turn">turn 1</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Chad Myers thinks the storm moved a little bit to the north.</div><div class="label">Exact evidence quote</div><blockquote>“I think this storm moved a little bit to the north”</blockquote><div class="speaker">CHAD MYERS, CNN METEOROLOGIST</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-13087</span><span class="turn">turn 3</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Fossella believes it is not necessary for House leaders to be front and center all the time.</div><div class="label">Exact evidence quote</div><blockquote>“I don't believe that it's necessary to be front and center all the time”</blockquote><div class="speaker">FOSSELLA</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-127856</span><span class="turn">turn 0</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Whitfield believes President Bush or the White House must be feeling a small sense of victory.</div><div class="label">Exact evidence quote</div><blockquote>“I have to imagine that President Bush, at least the White House must be feeling a small sense of victory here.”</blockquote><div class="speaker">WHITFIELD</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-127790</span><span class="turn">turn 10</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Sen. John McCain claims to speak for all of America.</div><div class="label">Exact evidence quote</div><blockquote>“I know that I speak for all of America.”</blockquote><div class="speaker">SEN. JOHN MCCAIN (R), PRESUMPTIVE PRES. NOMINEE</div></div>
+      </article>
+      <article>
+        <header><span class="doc">CNN-131712</span><span class="turn">turn 12</span></header>
+        <div class="body"><div class="label">Compiled claim</div><div class="claim">Barack Obama wants people to go vote.</div><div class="label">Exact evidence quote</div><blockquote>“I want you to go vote.”</blockquote><div class="speaker">SEN. BARACK OBAMA (D), PRESIDENTIAL CANDIDATE</div></div>
+      </article>
+    </section>
+    <footer>All cards are stored compiled facts from the held-out run; each displayed quote passed the system’s exact-match validation against the cited source turn. This gallery is illustrative, not an accuracy evaluation.</footer>
+  </main>
+</body>
+</html>
