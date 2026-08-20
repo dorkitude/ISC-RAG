@@ -111,10 +111,22 @@ held-out documents measured by the replay harness, not the corpus mean, which
 is 139.5. The two figures are consistent.
 
 The same twenty-document sample underlies the reported ingest cost of roughly
-0.064 USD per document and 32 USD for the corpus. Because that sample yields
-3.6% fewer facts per document than the corpus, the corpus cost is likely a
-little higher than the extrapolation. The cost figure must be reported as an
-extrapolation from twenty documents, not as a corpus-wide measurement.
+0.064 USD per document and 32 USD for the corpus. That sample is slightly
+less fact-dense than the corpus: the replay harness measured 134.7 facts per
+document on it against a corpus mean of 139.5, a shortfall of 3.4%, and the
+frozen run on the same twenty documents gave 135.5, a shortfall of 2.9%.
+
+Fact yield is not itself the cost driver — prompt and completion tokens per
+document are — so these percentages indicate only that the sampled documents
+are a little less dense than average, and do not scale the cost directly.
+Tokens per document were not measured corpus-wide. The cost figure must
+therefore be reported as an extrapolation from twenty documents, not as a
+corpus-wide measurement, and its direction of error stated as unknown but
+plausibly low.
+
+**Correction, 2026-08-20:** an earlier version of this addendum gave the
+shortfall as 3.6%, which matches neither comparison above, and implied that
+the yield gap scales the cost. Both are corrected here.
 
 ### What this audit cannot establish
 
