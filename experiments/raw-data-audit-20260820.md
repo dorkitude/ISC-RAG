@@ -88,3 +88,50 @@ brew install postgresql@17 uv
 brew services start postgresql@17
 ./20260820_ISCRAG_RawDataAudit_Homebrew_EN_v6.sh path/to/dump
 ```
+
+## Addendum, 2026-08-20: sample composition and three limits of this audit
+
+### Fact yield by sample
+
+Membership is defined by the frozen document lists, not by the database:
+`documents.corpus_split` is `test` for both samples and does not distinguish
+them. Counts below join `facts` to those lists.
+
+| Sample | Documents | Facts | Facts per document |
+|---|---|---|---|
+| dev-100 | 100 | 13,064 | 130.6 |
+| heldout-500 | 500 | 69,746 | 139.5 |
+| other (touched by earlier prompt studies) | 100 | 2,385 | 23.9 |
+| Total | 700 | 85,195 | 121.7 |
+
+Every fact is in state `active`; no superseded rows exist. The held-out
+figure of 69,746 is confirmed. A comparison against 135.5 facts per document
+would suggest a shortfall, but 135.5 is the mean over the first twenty
+held-out documents measured by the replay harness, not the corpus mean, which
+is 139.5. The two figures are consistent.
+
+The same twenty-document sample underlies the reported ingest cost of roughly
+0.064 USD per document and 32 USD for the corpus. Because that sample yields
+3.6% fewer facts per document than the corpus, the corpus cost is likely a
+little higher than the extrapolation. The cost figure must be reported as an
+extrapolation from twenty documents, not as a corpus-wide measurement.
+
+### What this audit cannot establish
+
+- **Runs deleted before judging are undetectable here.** The results record
+  discloses that three contextual-retrieval baseline runs returned recall
+  0.000 because retrieval executed before the contextualized chunks had
+  embeddings; they were deleted unjudged and the pipeline was re-run with the
+  embed step in place. Nothing judged was affected. The audit verifies that
+  every run ID cited by the ledgers exists; a run that was removed leaves no
+  trace in either the ledgers or the snapshot, so this class of event is
+  covered by disclosure alone.
+- **Sample definitions are only as durable as two files.** `examples/heldout-500-20260726.txt`
+  and `examples/fact-development-sample-100-20260725.txt` are the definition of
+  the two samples. The database does not encode the distinction. Any paper
+  reporting these samples must cite both file paths and the commit that fixed
+  them.
+- **The gate rejection rate does not come from the database.** Migration 013 is
+  applied and `fact_rejections` exists, but it holds zero rows: no extraction
+  has run since gate persistence was added. The 1.06% figure is the read-only
+  replay harness measurement and must be attributed to it.
