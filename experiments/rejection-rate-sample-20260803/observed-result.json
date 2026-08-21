@@ -1,0 +1,25 @@
+{
+  "observation": {
+    "captured_at": "2026-08-03T17:26:35-07:00",
+    "completion_tokens": 90187,
+    "documents": 20,
+    "extractor_calls": 629,
+    "model": "accounts/fireworks/models/kimi-k2p6",
+    "prompt_tokens": 963048,
+    "sample_rule": "first 20 held-out documents in production order (external_id ascending)"
+  },
+  "pricing_assumption": {
+    "as_of": "2026-08-03",
+    "completion_usd_per_million_tokens": "4.00",
+    "prompt_usd_per_million_tokens": "0.95"
+  },
+  "tallies": {
+    "candidates": 2724,
+    "deduplicated": 2,
+    "rejected_bad_target_range": 0,
+    "rejected_empty_or_overlong_quote": 1,
+    "rejected_generic_speaker": 0,
+    "rejected_quote_not_in_target": 28,
+    "validated": 2693
+  }
+}

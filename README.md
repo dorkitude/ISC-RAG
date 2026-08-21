@@ -285,7 +285,9 @@ The authoritative project roadmap is [PLAN.md](PLAN.md).
   versus the frozen run's 135.5 on the same documents. Provider-reported cost:
   48.2k prompt + 4.5k completion tokens per document (≈$0.064/doc at current
   Fireworks Kimi pricing; ≈$32 / 26.3M tokens for the full 500-document
-  corpus). These figures feed the CIDR paper's §2.1 and R\* appendix.
+  corpus). The paper-facing values now derive from the committed
+  [replay observation and deterministic summary](experiments/rejection-rate-sample-20260803/README.md),
+  with the 20-document sampling and pricing assumptions explicit.
 - **2026-08-03:** Extraction now persists every gate decision: rejected
   candidates land in the new `fact_rejections` table with a reason
   (migration `013_fact_rejections.sql`, written but not yet applied to the

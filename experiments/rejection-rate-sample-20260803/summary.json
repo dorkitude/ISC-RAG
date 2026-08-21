@@ -1,0 +1,18 @@
+{
+  "candidate_claims": 2724,
+  "completion_tokens_per_document": "4509.35",
+  "cost_usd_per_document": "0.06378218",
+  "cost_usd_per_document_reported": "0.064",
+  "five_hundred_document_cost_usd_extrapolation": "31.89109",
+  "five_hundred_document_token_extrapolation": 26330875,
+  "gate_rejection_rate_percent": "1.064611",
+  "gate_rejection_rate_percent_reported": "1.06",
+  "gate_rejections": 29,
+  "overall_drop_rate_percent": "1.138032",
+  "overall_drops_including_deduplication": 31,
+  "prompt_tokens_per_document": "48152.40",
+  "sample_cost_usd": "1.2756436",
+  "sample_documents": 20,
+  "total_tokens_per_document": "52661.75",
+  "validated_claims_per_document": "134.65"
+}
