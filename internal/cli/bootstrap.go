@@ -33,11 +33,15 @@ var mediaSumFiles = []corpusFile{
 func newBootstrapCommand() *cobra.Command {
 	var projectDir string
 	var installDependencies bool
+	var acceptMediaSumResearchUse bool
 
 	command := &cobra.Command{
 		Use:   "bootstrap",
 		Short: "Validate local credentials and acquire the pinned MediaSum resource",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !acceptMediaSumResearchUse {
+				return errors.New("MediaSum is provided for research use; review MEDIASUM-NOTICE.md and rerun with --accept-mediasum-research-use")
+			}
 			if installDependencies {
 				if err := installPostgresDependencies(cmd); err != nil {
 					return err
@@ -67,6 +71,7 @@ func newBootstrapCommand() *cobra.Command {
 
 	command.Flags().StringVar(&projectDir, "project-dir", ".", "ISC-RAG project directory")
 	command.Flags().BoolVar(&installDependencies, "install-deps", false, "install PostgreSQL 17 and pgvector on the host")
+	command.Flags().BoolVar(&acceptMediaSumResearchUse, "accept-mediasum-research-use", false, "confirm research-only MediaSum use after reviewing MEDIASUM-NOTICE.md")
 	return command
 }
 

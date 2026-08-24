@@ -41,8 +41,12 @@ The Go/Cobra CLI downloads the pinned Hugging Face revision to a temporary file,
 validates its checksum, then atomically places it in this directory. Run:
 
 ```sh
-./bootstrap.sh
+./bootstrap.sh --accept-mediasum-research-use
 ```
+
+The flag confirms that the user has reviewed
+[`MEDIASUM-NOTICE.md`](../../MEDIASUM-NOTICE.md) and will use the resource for
+research purposes.
 
 ### Completed acquisition
 

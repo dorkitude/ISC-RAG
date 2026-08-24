@@ -13,7 +13,7 @@ independently of the run that produced them.
 
 | Field | Value |
 |---|---|
-| Snapshot | `20260819-1620_isc_rag_full.dump` (pg_dump custom format, migration 013 applied), released under tag `sqldump-20260819` at commit `9f5c09d` |
+| Snapshot | `20260819-1620_isc_rag_full.dump` (pg_dump custom format, migration 013 applied), originally attached to private tag `sqldump-20260819` at commit `9f5c09d`; removed from GitHub before public release and retained privately |
 | Produced by | Kyle Wild, 2026-08-19 |
 | SHA-256 | `8efe7f1d0a4693571593a48f35e01d1cce616e822a7119951506fc216cbff04b` (verified before restore) |
 | Restored into | scratch database `isc_rag_audit`, PostgreSQL 17.11 |

@@ -1,22 +1,20 @@
-# sqldumps
+# Private database backups
 
-Disaster-recovery dumps of the ISC-RAG PostgreSQL database (the system of
-record for the frozen-100 and heldout-500 protocol data).
+Full ISC-RAG database dumps contain MediaSum transcripts, supporting
+quotations, extracted facts, questions, generated answers, and raw model
+artifacts. They are disaster-recovery material, not public release artifacts.
 
-Dumps are pg_dump custom format, named `YYYYMMDD-HHMM_isc_rag_full.dump`.
-They are too large for regular git objects (~800MB), so `*.dump` is gitignored
-here and each dump is attached to a GitHub release tagged `sqldump-YYYYMMDD`
-on this repository instead.
+The `sqldumps/` directory ignores every dump. Store encrypted backups only in a
+private location with access limited to the research team. Do not attach a full
+dump to a public GitHub release.
 
-Create:
+Create a private backup:
 
-    pg_dump "$DATABASE_URL" -Fc -f "sqldumps/$(date +%Y%m%d-%H%M)_isc_rag_full.dump"
-    gh release create "sqldump-$(date +%Y%m%d)" sqldumps/*.dump --notes "Full pg_dump -Fc of isc_rag" --title "SQL dump $(date +%Y%m%d)"
+```sh
+pg_dump "$DATABASE_URL" -Fc -f "sqldumps/$(date +%Y%m%d-%H%M)_isc_rag_full.dump"
+shasum -a 256 sqldumps/*.dump
+```
 
-Restore (into a fresh database):
-
-    pg_restore -d "$DATABASE_URL" --no-owner -j 8 <file>.dump
-
-Inspect contents without restoring:
-
-    pg_restore -l <file>.dump
+For public verification, regenerate `results/public-results.sql`. That export
+contains configuration and aggregate results but no source or model payloads;
+see [`results/README.md`](../results/README.md).
