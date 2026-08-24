@@ -6,6 +6,14 @@ human dialogue.
 
 The authoritative project roadmap is [PLAN.md](PLAN.md).
 
+## Papers
+
+- [*RAG Deserves an Index: Why Ingest-Time Compilation Beats Query-Time Interpretation*](https://arxiv.org/abs/2608.20845) ([PDF](https://arxiv.org/pdf/2608.20845), [DOI](https://doi.org/10.48550/arXiv.2608.20845)) — the position paper that reports this repository's document-disjoint retrieval and QA comparison alongside the ISC maintenance result.
+- [*Cost Scales with Change, Not Corpus Size: Incrementally Maintaining an Evolving Semantic Substrate*](https://arxiv.org/abs/2608.16621) ([PDF](https://arxiv.org/pdf/2608.16621), [DOI](https://doi.org/10.48550/arXiv.2608.16621)) — the companion incremental-maintenance study.
+
+The reconstructed [study token estimate](docs/study-token-estimate-20260823.md)
+records what is directly metered, what is estimated, and what is excluded.
+
 ## Status
 
 - **2026-07-23:** Project created.
