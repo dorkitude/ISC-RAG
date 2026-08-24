@@ -24,4 +24,4 @@ The dump creates only the `public_release` schema and does not depend on
 pgvector.
 
 SHA-256:
-`b4294a52e20fab5e06545eb819e95a14a25468145b8d72fffbeca07746abffd0`.
+`9e0f49819a3f6c32da03277a3af051090dfdea4fcf47f6e38885fd9a8ee3a95e`.
