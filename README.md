@@ -9,6 +9,10 @@ human dialogue.
 - [*RAG Deserves an Index: Why Ingest-Time Compilation Beats Query-Time Interpretation*](https://arxiv.org/abs/2608.20845) ([repository PDF](PAPER.PDF), [arXiv PDF](https://arxiv.org/pdf/2608.20845), [DOI](https://doi.org/10.48550/arXiv.2608.20845)) — the position paper reporting this repository's document-disjoint retrieval and QA comparison alongside the ISC maintenance result.
 - [*Cost Scales with Change, Not Corpus Size: Incrementally Maintaining an Evolving Semantic Substrate*](https://arxiv.org/abs/2608.16621) ([PDF](https://arxiv.org/pdf/2608.16621), [DOI](https://doi.org/10.48550/arXiv.2608.16621)) — the companion incremental-maintenance study.
 
+**Venue status:** *RAG Deserves an Index* is CIDR 2027 submission #150. It is
+public on arXiv but has not yet been accepted; CIDR author notification is due
+October 6, 2026.
+
 The complete chronological record is in [CHANGELOG.md](CHANGELOG.md). The
 reconstructed [study token estimate](docs/study-token-estimate-20260823.md)
 separates directly metered usage from estimated components.
