@@ -1,0 +1,11 @@
+# False positives: these are judge-key *names* recorded in analysis output and
+# scripts (for example judge_kimi_heldout500_v1), not credentials. The
+# generic-api-key rule fires because the literal word "key" precedes a
+# high-entropy identifier. Verified by inspection on 2026-08-27; a full-history
+# scan of 67 commits found no other findings.
+76fb6d201a0c5607b1a44b1eef3c7f3312326628:experiments/heldout-500-mcnemar-20260726.md:generic-api-key:38
+9cad0ac4bda43f9a59b494960def2a47e3e0dbd2:experiments/heldout-500-mcnemar-20260726.md:generic-api-key:1
+9cad0ac4bda43f9a59b494960def2a47e3e0dbd2:experiments/heldout-500-mcnemar-20260726.md:generic-api-key:19
+bc86bf66aa7b6cd47c97e2c1a5af00e5528838b6:experiments/frontier-xl-mcnemar-20260726.md:generic-api-key:1
+bc86bf66aa7b6cd47c97e2c1a5af00e5528838b6:experiments/frontier-xl-mcnemar-20260726.md:generic-api-key:18
+04972735a94b388548dc5fb44abf950919cc87ba:scripts/verify-calibration-keys.py:generic-api-key:22
