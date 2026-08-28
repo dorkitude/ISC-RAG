@@ -21,3 +21,5 @@ resources/mediasum/.download-*
 /ignored artifacts/
 .DS_Store
 human-calibration-export
+experiments/i5a-calibration-20260726/*-key.jsonl
+PAPER.PDF
