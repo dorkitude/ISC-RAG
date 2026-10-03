@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -18,14 +19,43 @@ type Client struct {
 	http            *http.Client
 }
 
-func NewFromEnv() (*Client, error) {
-	key := strings.TrimSpace(os.Getenv("FIREWORKS_API_KEY"))
-	if key == "" {
-		return nil, fmt.Errorf("FIREWORKS_API_KEY is required")
+// IntegrationBase is the exe.dev `fireworks` integration: exe.dev injects the
+// Fireworks key at the network edge, so the VM needs (and holds) no key.
+const IntegrationBase = "https://fireworks.int.exe.xyz/inference/v1"
+
+// DirectBase is the Fireworks API itself, for machines without the
+// integration. Only a non-integration base needs FIREWORKS_API_KEY.
+const DirectBase = "https://api.fireworks.ai/inference/v1"
+
+// BaseFromEnv returns FIREWORKS_API_BASE (or FIREWORKS_BASE_URL), else the
+// exe.dev integration.
+func BaseFromEnv() string {
+	for _, name := range []string{"FIREWORKS_API_BASE", "FIREWORKS_BASE_URL"} {
+		if v := strings.TrimRight(strings.TrimSpace(os.Getenv(name)), "/"); v != "" {
+			return v
+		}
 	}
-	base := strings.TrimRight(strings.TrimSpace(os.Getenv("FIREWORKS_API_BASE")), "/")
-	if base == "" {
-		base = "https://api.fireworks.ai/inference/v1"
+	return IntegrationBase
+}
+
+// IsIntegration reports whether base is an exe.dev integration host, which
+// needs no Authorization header.
+func IsIntegration(base string) bool {
+	u, err := url.Parse(base)
+	return err == nil && strings.HasSuffix(u.Hostname(), ".int.exe.xyz")
+}
+
+// NewFromEnv uses the exe.dev integration by default. Set FIREWORKS_API_BASE
+// to another endpoint (e.g. DirectBase) and FIREWORKS_API_KEY in the
+// environment to call Fireworks directly. The key is never read from files
+// other than the optional project .env loaded by the CLIs.
+func NewFromEnv() (*Client, error) {
+	base := BaseFromEnv()
+	key := strings.TrimSpace(os.Getenv("FIREWORKS_API_KEY"))
+	if IsIntegration(base) {
+		key = ""
+	} else if key == "" {
+		return nil, fmt.Errorf("FIREWORKS_API_KEY is required for %s (the default exe.dev fireworks integration needs no key)", base)
 	}
 	return &Client{baseURL: base, apiKey: key, http: &http.Client{Timeout: 2 * time.Minute}}, nil
 }
@@ -126,7 +156,9 @@ func (c *Client) request(ctx context.Context, path string, payload any, destinat
 		if err != nil {
 			return err
 		}
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		if c.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		}
 		req.Header.Set("Content-Type", "application/json")
 		res, err := c.http.Do(req)
 		if err != nil {

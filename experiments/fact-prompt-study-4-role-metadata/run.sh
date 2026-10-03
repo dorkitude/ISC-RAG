@@ -14,9 +14,18 @@ model="${FACT_STUDY_MODEL:-accounts/fireworks/models/deepseek-v4-pro}"
 
 test -f "$prompt"
 mkdir -p "$out"
-set -a; source "$project_dir/.env"; set +a
+if [ -f "$project_dir/.env" ]; then set -a; source "$project_dir/.env"; set +a; fi
 : "${DATABASE_URL:?DATABASE_URL is required in the local .env}"
-: "${FIREWORKS_API_KEY:?FIREWORKS_API_KEY is required in the local .env}"
+# Default: the exe.dev fireworks integration, which injects the key at the
+# edge. Set FIREWORKS_API_BASE=https://api.fireworks.ai/inference/v1 and
+# FIREWORKS_API_KEY in the environment to call Fireworks directly.
+fireworks_base="${FIREWORKS_API_BASE:-https://fireworks.int.exe.xyz/inference/v1}"
+auth=()
+case "$fireworks_base" in
+  *.int.exe.xyz*) ;;
+  *) : "${FIREWORKS_API_KEY:?FIREWORKS_API_KEY is required for $fireworks_base}"
+     auth=(-H "Authorization: Bearer $FIREWORKS_API_KEY") ;;
+esac
 
 # Keep role labels deterministic: they are only the migrated speaker_name and
 # speaker_role fields, never inferred from the dialogue by this runner.
@@ -37,8 +46,8 @@ jq -n \
 
 started="$(date +%s)"
 curl --fail-with-body --silent --show-error \
-  -H "Authorization: Bearer $FIREWORKS_API_KEY" -H 'Content-Type: application/json' \
-  -d @"$out/request.json" 'https://api.fireworks.ai/inference/v1/chat/completions' \
+  "${auth[@]}" -H 'Content-Type: application/json' \
+  -d @"$out/request.json" "${fireworks_base%/}/chat/completions" \
   >"$out/response.json"
 ended="$(date +%s)"
 jq -r '.choices[0].message.content' "$out/response.json" >"$out/completion.json"

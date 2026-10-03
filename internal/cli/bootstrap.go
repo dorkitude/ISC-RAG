@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/dorkitude/isc-rag/internal/fireworks"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
@@ -88,15 +89,16 @@ func loadLocalEnv(projectDir string) error {
 	return nil
 }
 
+// requireCredentials checks the Fireworks route. The default exe.dev
+// integration needs no key; any other FIREWORKS_API_BASE needs
+// FIREWORKS_API_KEY in the environment (or the ignored local .env).
 func requireCredentials() error {
-	missing := make([]string, 0, 2)
-	for _, name := range []string{"FIREWORKS_API_KEY"} {
-		if strings.TrimSpace(os.Getenv(name)) == "" {
-			missing = append(missing, name)
-		}
+	base := fireworks.BaseFromEnv()
+	if fireworks.IsIntegration(base) {
+		return nil
 	}
-	if len(missing) > 0 {
-		return fmt.Errorf("missing required environment variable(s): %s; set them in .env or the shell environment", strings.Join(missing, ", "))
+	if strings.TrimSpace(os.Getenv("FIREWORKS_API_KEY")) == "" {
+		return fmt.Errorf("missing required environment variable FIREWORKS_API_KEY for FIREWORKS_API_BASE=%s; set it in .env or the shell environment, or unset FIREWORKS_API_BASE to use the exe.dev fireworks integration", base)
 	}
 	return nil
 }

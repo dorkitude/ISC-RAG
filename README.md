@@ -70,13 +70,18 @@ sources/MediaSum/     pinned official MediaSum repository submodule
 
 ## Bootstrap
 
-Requirements: Go, Docker, and a Fireworks API key.
+Requirements: Go, Docker, and Fireworks access. On an exe.dev VM with the
+`fireworks` integration attached, nothing else is needed: every Fireworks call
+goes to `https://fireworks.int.exe.xyz/inference/v1`, which injects the key at
+the network edge. Elsewhere, set
+`FIREWORKS_API_BASE=https://api.fireworks.ai/inference/v1` and
+`FIREWORKS_API_KEY` in the environment or the ignored `.env`.
 
 ```sh
 git clone --recurse-submodules https://github.com/dorkitude/ISC-RAG.git
 cd ISC-RAG
 cp .env_example .env
-# Add FIREWORKS_API_KEY to .env.
+# Off exe.dev only: add FIREWORKS_API_BASE and FIREWORKS_API_KEY to .env.
 docker compose up -d postgres
 ./bootstrap.sh --accept-mediasum-research-use
 go run ./cmd/isc-rag migrate

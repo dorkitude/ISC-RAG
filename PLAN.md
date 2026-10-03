@@ -256,7 +256,9 @@ The project uses Go and Cobra for its CLI.
 ```
 
 `bootstrap.sh` checks that Go is installed and invokes `isc-rag bootstrap`. The
-CLI loads `.env`, requires `FIREWORKS_API_KEY`, then
+CLI loads `.env`, checks the Fireworks route (the default exe.dev `fireworks`
+integration needs no key; `FIREWORKS_API_BASE` pointing elsewhere requires
+`FIREWORKS_API_KEY` from the environment), then
 verifies or downloads the pinned MediaSum release.
 
 Local secrets go only in `.env`, which is ignored by Git. `.env_example` is the

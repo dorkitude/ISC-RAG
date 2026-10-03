@@ -6,8 +6,11 @@ role-metadata prompt study. `claim-ledger.md` was locked before extraction;
 refinements; and `run.sh` makes a temperature-zero Fireworks request against the
 fixed development document `NPR-1040`.
 
-Run from the ISC-RAG project root after placing `FIREWORKS_API_KEY` and
-`DATABASE_URL` in the local `.env`:
+Run from the ISC-RAG project root after placing `DATABASE_URL` in the local
+`.env`. Fireworks is reached through the exe.dev `fireworks` integration
+(`https://fireworks.int.exe.xyz/inference/v1`), which needs no key on the VM;
+off exe.dev, set `FIREWORKS_API_BASE=https://api.fireworks.ai/inference/v1` and
+`FIREWORKS_API_KEY` in the environment:
 
 ```sh
 experiments/fact-prompt-study-4-role-metadata/run.sh seed-a-role-aware-direct
