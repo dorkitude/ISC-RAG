@@ -58,8 +58,8 @@ def normalise(s: str) -> str:
 def token_prf(pred: str, gold: str) -> tuple[float, float, float]:
     """Token-level precision, recall and F1.
 
-    Measured on this corpus: reference answers average 25 words while system
-    answers average 7-10, so every run is recall-capped and F1 rewards
+    Measured on this corpus: reference answers average 22.7 words while system
+    answers average 6.6-9.5, so every run is recall-capped and F1 rewards
     verbosity independently of correctness. Precision is the length-robust
     direction. All five metrics are always reported.
     """
@@ -172,7 +172,7 @@ def main() -> int:
                     choices=["em", "contains", "f1", "precision", "recall"],
                     default="contains")
     ap.add_argument("--per-run", action="store_true",
-                    help="also print the three metrics for every run in the ledger")
+                    help="also print all five metrics for every run in the ledger")
     ap.add_argument("--examples", type=int, default=0,
                     help="print N answer/reference pairs from the reference run")
     ap.add_argument("--bootstrap", type=int, default=10000)

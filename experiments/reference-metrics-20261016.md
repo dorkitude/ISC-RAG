@@ -144,8 +144,8 @@ verbatim from `scripts/stats-mcnemar.py`.
    facts beat all three chunk representations at all four budgets
    (Holm p <= 1.26e-11), beat the contextualized dense and hybrid
    configurations decisively (+0.139 and +0.123), and are indistinguishable
-   from the full contextual-retrieval stack (p = 0.72 at 2,048, p = 0.28 at
-   16,384). The judge's conclusions and a judge-free metric agree in all four
+   from the full contextual-retrieval stack (Holm p = 0.72 at 2,048 and
+   p = 0.57 at 16,384; unadjusted Wilcoxon p = 0.72 and 0.28). The judge's conclusions and a judge-free metric agree in all four
    comparisons.
 
 2. **Facts answer more tersely than every alternative** — 6.6 to 6.9 words
