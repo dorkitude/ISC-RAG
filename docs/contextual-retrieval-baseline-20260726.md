@@ -58,8 +58,9 @@ advantage survive against that full stack at matched budgets?
 5. Trade-offs the paper should state: the full recipe needs a reranking
    model in the query path (a per-query cost paid forever), its preamble is
    unvalidated generation (the HaluMem failure mode), and ingest-cost
-   accounting differs (contextualization ≈ 2.3M tokens for this sample
-   versus the heavier fact-extraction bill).
+   accounting differs (contextualization ≈ 1.2M tokens for this sample —
+   see the itemized accounting below — versus the heavier fact-extraction
+   bill).
 
 ### Significance and full-stack cost accounting (added after review request)
 
@@ -82,6 +83,17 @@ nothing). Ingest accounting: contextualization consumed ≈1.2M tokens for
 this sample (0.91M transcript + 0.23M chunk + outputs); fact extraction's
 ingest cost is higher, which is precisely the amortization trade the ISC
 cost model prices.
+
+*Ingest-figure reconciliation (2026-10-16).* Findings item 5 originally said
+≈2.3M; that line predates this section and was not updated when it was added
+(`54eaa9a`). Contextualization usage was not logged, so the bill was
+reconstructed from `sqldump-20260819`: `internal/cli/contextualize.go` sends
+the full speaker-labelled transcript (capped at 120,000 characters) plus one
+chunk per call, for 283 `fact-dev-sample-100-ctx-v1` chunks over 100
+documents. Under `o200k_base` that is ≈0.85M transcript + 0.19M chunk +
+0.03M system-prompt input tokens and ≈0.02M output tokens, ≈1.09M in total.
+This is consistent with ≈1.2M under DeepSeek V4 Flash's own tokenizer and
+cannot reach 2.3M, which is retired.
 
 Caveats: single runs per cell (judge noise plausibly ±3–4), rerank
 candidate counts differ between chunk (50) and fact (100) arms for payload
