@@ -264,7 +264,7 @@ We presented ISC-RAG, an ingest-time semantic compilation pipeline that turns di
 [5] N. Zhang et al., "SiReRAG: Indexing Similar and Related Information for Multihop Reasoning," ICLR, 2025.
 [6] N. Pollertlam and W. Kornsuwannawit, "Beyond the Context Window: A Cost-Performance Analysis of Fact-Based Memory vs. Long-Context LLMs for Persistent Agents," arXiv:2603.04814, 2026 (preprint).
 [7] D. Chen et al., "HaluMem: Evaluating Hallucinations in Memory Systems of Agents," arXiv:2511.03506, 2025 (preprint).
-[8] Z. Bao and Y. Shi, "IndexRAG: Bridging Facts for Cross-Document Reasoning at Index Time," arXiv:2603.16415, 2026 (preprint).
+[8] Z. Bao and Y. Shi, "IndexRAG: Index-Time Reasoning for Multi-Hop Retrieval-Augmented Generation," arXiv:2603.16415, 2026 (preprint).
 [9] A. Hamilton et al., "The Token Tax of Epistemic Accuracy: Comparing RAG and Long-Context Architectures for Document-Grounded Generative AI Applications," arXiv:2606.20898, 2026 (preprint).
 [10] Microsoft Research, "LazyGraphRAG: Setting a New Standard for Quality and Cost," blog, 2024.
 [11] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS, 2020.
@@ -273,7 +273,7 @@ We presented ISC-RAG, an ingest-time semantic compilation pipeline that turns di
 [14] C. Zhu et al., "MediaSum: A Large-scale Media Interview Dataset for Dialogue Summarization," NAACL, 2021.
 [15] S. Min et al., "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation," EMNLP, 2023.
 [16] P. Chhikara et al., "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory," arXiv:2504.19413, 2025 (preprint).
-[17] M. Louis et al. 〔verify〕, "PISCO: Pretty Simple Compression for Retrieval-Augmented Generation," arXiv:2501.16075, 2025 (preprint); H. Jiang et al., "LLMLingua," EMNLP, 2023.
+[17] M. Louis, H. Déjean, and S. Clinchant, "PISCO: Pretty Simple Compression for Retrieval-Augmented Generation," arXiv:2501.16075, 2025 (preprint); H. Jiang et al., "LLMLingua," EMNLP, 2023.
 [18] O. Zahn and S. Chana, "Facts as First Class Objects: Knowledge Objects for Persistent LLM Memory," arXiv:2603.17781, 2026 (preprint).
 [19] N. F. Liu et al., "Lost in the Middle: How Language Models Use Long Contexts," TACL, 2024.
 [20] K. Hong et al., "Context Rot: How Increasing Input Tokens Impacts LLM Performance," Chroma technical report, 2025. https://www.trychroma.com/research/context-rot
